@@ -15,7 +15,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import ROLE_LEVEL
+from app.core.constants import ROLE_ADMIN, ROLE_LEVEL, ROLE_MODERATOR
 from app.core.security import decode_token
 from app.db.session import get_session
 from app.models.user import Session as AuthSession
@@ -71,6 +71,11 @@ async def get_current_auth(
     user = await db.get(User, user_id)
     if user is None:
         raise _unauthorized()
+    if user.is_blocked:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Аккаунт заблокирован",
+        )
 
     return AuthContext(user=user, session=session)
 
@@ -108,3 +113,7 @@ def require_role(minimum: str):
         return user
 
     return checker
+
+
+require_moderator = require_role(ROLE_MODERATOR)
+require_admin = require_role(ROLE_ADMIN)
