@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/*
+ * Палитра «полка»: тёплые бумажные тона + акцент цвета обожжённой глины.
+ * Все токены доступны как утилиты Tailwind: bg-shelf-100, text-accent-600 и т.д.
+ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-shelf-50: #faf7f2;
+  --color-shelf-100: #f2ece2;
+  --color-shelf-200: #e4d8c6;
+  --color-shelf-300: #d3bfa3;
+  --color-shelf-400: #bfa07c;
+  --color-shelf-500: #a9855f;
+  --color-shelf-600: #8f6a49;
+  --color-shelf-700: #74543b;
+  --color-shelf-800: #5b4231;
+  --color-shelf-900: #3f2f24;
+
+  --color-accent-500: #d1521c;
+  --color-accent-600: #c2410c;
+  --color-accent-700: #9a340a;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-shelf-50 text-shelf-900 antialiased;
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    @apply bg-shelf-200 text-shelf-900;
+  }
+}

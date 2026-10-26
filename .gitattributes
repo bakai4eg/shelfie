@@ -1,0 +1,30 @@
+# Единые переводы строк — LF в репозитории для всех ОС.
+* text=auto eol=lf
+
+# Бинарные файлы
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.docx binary
+*.pdf binary
+
+# Явно текстовые
+*.md text eol=lf
+*.py text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Не показывать диффы в статистике
+docs/tz/*.docx -diff
+docs/tz/*.jpg -diff

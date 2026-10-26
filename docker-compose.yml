@@ -1,0 +1,63 @@
+# Локальная и демонстрационная среда: api + db + frontend (ТЗ 5.1, 5.2).
+# Значения по умолчанию подходят для запуска «из коробки»:
+#   docker compose up --build
+# Для реальных ключей скопируйте .env.example в .env — compose подхватит его сам.
+
+name: shelfie
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shelfie}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shelfie}
+      POSTGRES_DB: ${POSTGRES_DB:-shelfie}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shelfie} -d ${POSTGRES_DB:-shelfie}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DEBUG: ${DEBUG:-true}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-shelfie}:${POSTGRES_PASSWORD:-shelfie}@db:5432/${POSTGRES_DB:-shelfie}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      CACHE_TTL_DAYS: ${CACHE_TTL_DAYS:-7}
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:
