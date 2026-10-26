@@ -1,20 +1,7 @@
 /** Базовый URL API. В dev по умолчанию идём через прокси Vite на /api. */
+import { notifyUnauthorized, tokenStore } from "@/lib/auth";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
-
-const TOKEN_KEY = "shelfie.token";
-
-/** Токен хранится в одном месте, остальной код ходит через этот объект. */
-export const tokenStore = {
-  get(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-  },
-  set(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
-  },
-  clear(): void {
-    localStorage.removeItem(TOKEN_KEY);
-  },
-};
 
 export class ApiError extends Error {
   readonly status: number;
@@ -30,10 +17,29 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   /** Публичные запросы не подставляют токен. */
   anonymous?: boolean;
+  /** Для входа/регистрации: 401 — это ошибка формы, а не истёкшая сессия. */
+  skipAuthRedirect?: boolean;
 };
 
+/** FastAPI отвечает `detail` строкой или списком ошибок валидации. */
+function extractDetail(payload: unknown): string {
+  if (!payload || typeof payload !== "object" || !("detail" in payload)) {
+    return "Что-то пошло не так";
+  }
+
+  const detail = (payload as { detail: unknown }).detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: unknown } | undefined;
+    return typeof first?.msg === "string" ? first.msg : "Проверьте введённые данные";
+  }
+  return "Что-то пошло не так";
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, anonymous, headers, ...rest } = options;
+  const { body, anonymous, skipAuthRedirect, headers, ...rest } = options;
   const token = anonymous ? null : tokenStore.get();
 
   const response = await fetch(`${API_URL}${path}`, {
@@ -53,15 +59,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const detail =
-      payload && typeof payload === "object" && "detail" in payload
-        ? String((payload as { detail: unknown }).detail)
-        : "Что-то пошло не так";
     // 401 обрабатывается в AuthProvider: чистим токен и уводим на вход
     if (response.status === 401) {
       tokenStore.clear();
+      if (!skipAuthRedirect) {
+        notifyUnauthorized();
+      }
     }
-    throw new ApiError(response.status, detail);
+    throw new ApiError(response.status, extractDetail(payload));
   }
 
   return payload as T;

@@ -1,5 +1,7 @@
 /** Значения, продублированные из ТЗ и бэкенда. Меняются вместе с ТЗ. */
 
+import type { Role } from "@/lib/types";
+
 export const REPO_URL = "https://github.com/bakai4eg/shelfie";
 export const TASK_URL = (taskId: string) =>
   `${REPO_URL}/blob/main/tasks/${taskId}.md`;
@@ -23,6 +25,13 @@ export const ROLE_LABELS = {
   admin: "Администратор",
 } as const;
 
+/** Уровни ролей повторяют backend/app/core/constants.py: больше — значит сильнее. */
+export const ROLE_LEVEL: Record<Role, number> = {
+  user: 1,
+  moderator: 2,
+  admin: 3,
+};
+
 export const LIST_THEME_LABELS = {
   classic: "Классика",
   noir: "Нуар",
@@ -39,5 +48,10 @@ export const REPORT_REASON_LABELS = {
 
 export const RATING_MIN = 1;
 export const RATING_MAX = 10;
+export const LOGIN_MIN_LENGTH = 3;
+export const LOGIN_MAX_LENGTH = 32;
+export const LOGIN_PATTERN = /^[A-Za-z0-9_]+$/;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_BYTES = 72;
 export const LIST_NOTE_MAX_LENGTH = 500;
 export const COMMENT_MAX_LENGTH = 1000;

@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 
 import Layout from "@/components/layout/Layout";
+import AuthProvider from "@/features/auth/AuthProvider";
+import { RequireAuth, RequireRole } from "@/features/auth/guards";
 import AdminPage from "@/pages/AdminPage";
 import CatalogPage from "@/pages/CatalogPage";
 import FeedPage from "@/pages/FeedPage";
@@ -17,28 +19,65 @@ import ReviewPage from "@/pages/ReviewPage";
 import SettingsPage from "@/pages/SettingsPage";
 
 /**
- * Маршруты приложения. Каждая страница-заглушка знает, какая задача её наполняет.
- * Закрытые маршруты появятся вместе с AuthProvider (T1.1).
+ * Маршруты приложения. Публичные экраны открыты гостю, закрытые обёрнуты
+ * в RequireAuth/RequireRole: гость уходит на /login с запоминанием адреса.
  */
 export default function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<HomePage />} />
-        <Route path="catalog" element={<CatalogPage />} />
-        <Route path="catalog/:itemId" element={<ItemPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="u/:login" element={<ProfilePage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="my/library" element={<LibraryPage />} />
-        <Route path="lists/:listId" element={<ListPage />} />
-        <Route path="reviews/:reviewId" element={<ReviewPage />} />
-        <Route path="feed" element={<FeedPage />} />
-        <Route path="moderation" element={<ModerationPage />} />
-        <Route path="admin" element={<AdminPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="catalog" element={<CatalogPage />} />
+          <Route path="catalog/:itemId" element={<ItemPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="u/:login" element={<ProfilePage />} />
+          <Route
+            path="settings"
+            element={
+              <RequireAuth>
+                <SettingsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="my/library"
+            element={
+              <RequireAuth>
+                <LibraryPage />
+              </RequireAuth>
+            }
+          />
+          <Route path="lists/:listId" element={<ListPage />} />
+          <Route path="reviews/:reviewId" element={<ReviewPage />} />
+          <Route
+            path="feed"
+            element={
+              <RequireAuth>
+                <FeedPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="moderation"
+            element={
+              <RequireRole role="moderator">
+                <ModerationPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="admin"
+            element={
+              <RequireRole role="admin">
+                <AdminPage />
+              </RequireRole>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 }

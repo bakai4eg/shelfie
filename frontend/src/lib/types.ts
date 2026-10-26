@@ -20,6 +20,25 @@ export interface User {
   role: Role;
 }
 
+export interface LoginPayload {
+  /** Логин или e-mail — бэкенд принимает и то, и другое. */
+  login: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  login: string;
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  user: User;
+}
+
 export interface CatalogItem {
   id: number;
   type: ItemType;
