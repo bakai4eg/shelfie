@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # общее
     app_env: str = "development"
     debug: bool = True
-    secret_key: str = "change-me-in-production"
+    secret_key: str = "dev-only-secret-key-change-me-in-production"
     access_token_expire_minutes: int = 60 * 24
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
