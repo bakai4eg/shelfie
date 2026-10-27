@@ -60,6 +60,7 @@ erDiagram
 | `external_id` | varchar(64) null | id в источнике; `unique(source, external_id)` |
 | `title` | varchar(500) | |
 | `original_title` | varchar(500) null | |
+| `title_normalized` | varchar(1000) | `lower(title + original_title)`, заполняется приложением |
 | `year` | int null | |
 | `country` | varchar(100) null | |
 | `genres` | varchar[] / jsonb | список жанров |
@@ -68,12 +69,12 @@ erDiagram
 | `is_local` | bool default false | признак локального (кыргызского) контента |
 | `moderation_status` | enum | `approved` (default для внешних), `pending`, `hidden` |
 | `created_by` | FK → users null | автор локальной карточки |
-| `rating_avg` | numeric(3,2) default 0 | денормализация |
+| `rating_avg` | numeric(4,2) default 0 | денормализация, 10.00 тоже влезает |
 | `ratings_count` | int default 0 | денормализация |
 | `fetched_at` | timestamptz null | когда данные получены из источника (TTL-кэш) |
 | `created_at` / `updated_at` | timestamptz | |
 
-Индексы: `(type)`, `(year)`, `(is_local)`, `lower(title)`, `(source, external_id)`.
+Индексы: `(type)`, `(year)`, `(is_local)`, `(title_normalized)`, `(source, external_id)`.
 
 ### `user_items` (полка)
 

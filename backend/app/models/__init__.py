@@ -5,9 +5,9 @@
 
 Файлы:
     user.py        — users, sessions                    (T1.1, готово)
+    catalog.py     — catalog_items                      (T2.1, готово)
 
 Планируемые файлы:
-    catalog.py     — catalog_items                      (T2.1)
     library.py     — user_items                         (T2.4)
     list.py        — lists, list_items                  (T3.2)
     social.py      — reviews, comments, likes, follows,
@@ -15,7 +15,8 @@
     moderation.py  — reports, audit_log                 (T4.1, T4.2)
 """
 
+from app.models.catalog import CatalogItem
 from app.models.user import Session, User
 
-__all__ = ["Session", "User"]
+__all__ = ["CatalogItem", "Session", "User"]
 

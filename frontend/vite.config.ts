@@ -20,6 +20,11 @@ export default defineConfig({
         target: "http://localhost:8000",
         changeOrigin: true,
       },
+      // Аватарки и обложки каталога отдаёт FastAPI (/media), не Vite.
+      "/media": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
     },
   },
 });

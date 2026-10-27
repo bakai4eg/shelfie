@@ -54,6 +54,17 @@ export interface CatalogItem {
   source: ItemSource;
 }
 
+export type CatalogSort = "relevance" | "year_desc" | "rating_desc" | "title_asc";
+
+export interface CatalogFilters {
+  types: ItemType[];
+  sources: ItemSource[];
+  genres: string[];
+  countries: string[];
+  year_min: number | null;
+  year_max: number | null;
+}
+
 export interface UserStats {
   books_read: number;
   movies_watched: number;
