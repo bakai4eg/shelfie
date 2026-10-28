@@ -2,7 +2,11 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.core.constants import BIO_MAX_LENGTH, PASSWORD_MIN_LENGTH
+
+PASSWORD_MAX_BYTES = 72
 
 
 class UserStats(BaseModel):
@@ -50,3 +54,39 @@ class ListPreview(BaseModel):
     title: str
     theme: str = "classic"
     items_count: int = 0
+
+
+class ProfileUpdate(BaseModel):
+    """PATCH /me/profile. Пустая строка и null одинаково очищают описание."""
+
+    bio: str | None = Field(default=None, max_length=BIO_MAX_LENGTH)
+
+    @field_validator("bio")
+    @classmethod
+    def normalize_bio(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password_bytes(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > PASSWORD_MAX_BYTES:
+            raise ValueError(f"Пароль длиннее {PASSWORD_MAX_BYTES} байт")
+        return value
+
+    @model_validator(mode="after")
+    def check_differs(self) -> "PasswordChange":
+        if self.new_password == self.current_password:
+            raise ValueError("Новый пароль совпадает с текущим")
+        return self
+
+
+class AvatarResponse(BaseModel):
+    avatar_url: str

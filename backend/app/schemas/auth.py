@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.constants import LOGIN_MAX_LENGTH, LOGIN_MIN_LENGTH, PASSWORD_MIN_LENGTH
+from app.core.media import avatar_url as media_url
 
 LOGIN_RE = re.compile(r"^[A-Za-z0-9_]+$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
@@ -60,6 +61,12 @@ class UserRead(BaseModel):
     login: str
     email: str
     role: str
+    avatar_url: str | None = Field(default=None, validation_alias="avatar_path")
+
+    @field_validator("avatar_url", mode="before")
+    @classmethod
+    def build_avatar_url(cls, value: str | None) -> str | None:
+        return media_url(value)
 
 
 class TokenResponse(BaseModel):
