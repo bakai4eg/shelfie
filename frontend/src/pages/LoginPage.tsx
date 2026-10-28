@@ -9,6 +9,7 @@ import { safeNextPath } from "@/lib/auth";
 
 interface FlashState {
   expired?: boolean;
+  passwordChanged?: boolean;
 }
 
 export default function LoginPage() {
@@ -19,6 +20,7 @@ export default function LoginPage() {
 
   const next = safeNextPath(params.get("next"));
   const expired = Boolean((location.state as FlashState | null)?.expired);
+  const passwordChanged = Boolean((location.state as FlashState | null)?.passwordChanged);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +59,12 @@ export default function LoginPage() {
       <p className="mt-2 text-sm text-shelf-700">
         Логин или e-mail и пароль. Сессия сохранится после перезагрузки страницы.
       </p>
+
+      {passwordChanged ? (
+        <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-900 ring-1 ring-green-200" role="status">
+          Пароль изменён. Войдите заново.
+        </p>
+      ) : null}
 
       {expired ? (
         <p className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200" role="status">

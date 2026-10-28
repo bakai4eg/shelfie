@@ -17,4 +17,17 @@ export const profileApi = {
       `/users/${encodeURIComponent(login)}/lists?page=${page}&size=${size}`,
       { signal },
     ),
+
+  updateBio: (bio: string) => api.patch<PublicProfile>("/me/profile", { bio }),
+
+  uploadAvatar: (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return api.post<{ avatar_url: string }>("/me/avatar", body);
+  },
+
+  deleteAvatar: () => api.delete<void>("/me/avatar"),
+
+  changePassword: (current: string, next: string) =>
+    api.put<void>("/me/password", { current_password: current, new_password: next }),
 };

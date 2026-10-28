@@ -23,7 +23,7 @@
 | POST | `/auth/register` | 🌐 | Регистрация: `login`, `email`, `password` → 201 |
 | POST | `/auth/login` | 🌐 | Вход по `login` **или** `email` + `password` |
 | POST | `/auth/logout` | 👤 | Отзыв текущей сессии → 204 |
-| GET | `/auth/me` | 👤 | Текущий пользователь + роль |
+| GET | `/auth/me` | 👤 | Текущий пользователь + роль (включая `avatar_url`) |
 
 Регистрация и вход возвращают:
 
@@ -32,9 +32,11 @@
   "access_token": "eyJ...",
   "token_type": "bearer",
   "expires_at": "2026-11-02T12:00:00Z",
-  "user": { "id": 1, "login": "bakai", "email": "b@example.com", "role": "user" }
+  "user": { "id": 1, "login": "bakai", "email": "b@example.com", "role": "user", "avatar_url": "/media/avatars/6f1c.jpg" }
 }
 ```
+
+`GET /auth/me` возвращает только объект `user` из этого ответа (без токена), включая `avatar_url`.
 
 Правила: логин 3–32 символа (`[a-zA-Z0-9_]`), пароль ≥ 8 символов (и ≤ 72 байт — ограничение bcrypt), e-mail валидный и уникальный. Ответы об ошибках:
 
@@ -54,10 +56,10 @@
 | GET | `/users/{login}` | 🌐 | Публичный профиль: логин, аватар, био, дата регистрации, статистика |
 | GET | `/users/{login}/reviews` | 🌐 | Публичные рецензии пользователя (пагинация) |
 | GET | `/users/{login}/lists` | 🌐 | Публичные списки пользователя |
-| PATCH | `/me/profile` | 👤 | `bio` (≤ 500), опционально `avatar_url` |
-| POST | `/me/avatar` | 👤 | `multipart/form-data`, поле `file`; заменяет прежний аватар |
-| DELETE | `/me/avatar` | 👤 | Удалить аватар |
-| PUT | `/me/password` | 👤 | `current_password`, `new_password`; отзывает все сессии |
+| PATCH | `/me/profile` | 👤 | `bio` (≤ 500, пустая строка очищает) |
+| POST | `/me/avatar` | 👤 | `multipart/form-data`, поле `file` (JPEG, PNG, WebP ≤ 5 МБ); заменяет прежний аватар → `{"avatar_url": "/media/avatars/<uuid>.png"}` |
+| DELETE | `/me/avatar` | 👤 | Удалить аватар → 204 |
+| PUT | `/me/password` | 👤 | `current_password`, `new_password` (≥ 8 символов); отзывает все сессии → 204 |
 
 Ответ профиля:
 
@@ -75,6 +77,11 @@
   "is_following": false
 }
 ```
+
+Коды ошибок:
+
+- 422: неверный формат/размер файла в `POST /me/avatar`, длина `bio` > 500 в `PATCH /me/profile`, длина нового пароля < 8 или совпадение с текущим в `PUT /me/password`.
+- 400: `Неверный текущий пароль` в `PUT /me/password`.
 
 На этапе 1 `stats` отдаёт нули: полки, оценки, рецензии и подписки появятся в T2.4/T3.3/T4.3/T5.4. Поля контракта при этом не меняются, `rating_avg` при нуле оценок — `0`, без деления на ноль.
 
