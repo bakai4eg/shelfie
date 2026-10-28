@@ -14,6 +14,7 @@ from app.api.routes import (
     library,
     lists,
     moderation,
+    reports,
     social,
     users,
 )
@@ -26,5 +27,6 @@ api_router.include_router(catalog.router)
 api_router.include_router(library.router)
 api_router.include_router(lists.router)
 api_router.include_router(social.router)
+api_router.include_router(reports.router)
 api_router.include_router(moderation.router)
 api_router.include_router(admin.router)
