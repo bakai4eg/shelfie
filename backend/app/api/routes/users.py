@@ -23,6 +23,7 @@ from app.services.profile import (
     set_avatar,
     update_bio,
 )
+from app.services.social import list_user_reviews
 
 router = APIRouter(tags=["users"])
 
@@ -44,10 +45,22 @@ async def get_user_reviews(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> Page[ReviewPreview]:
-    # Пользователь должен существовать: иначе 404, а не пустой список.
-    await get_user_by_login(db, login)
-    # TODO(T4.3): выборка рецензий; до появления модели отдаём пустую страницу.
-    return Page[ReviewPreview](items=[], total=0, page=page, size=size)
+    reviews_page = await list_user_reviews(db, login, page=page, size=size)
+    items = [
+        ReviewPreview(
+            id=r.id,
+            title=r.title,
+            rating=r.rating,
+            created_at=r.created_at,
+        )
+        for r in reviews_page.items
+    ]
+    return Page[ReviewPreview](
+        items=items,
+        total=reviews_page.total,
+        page=reviews_page.page,
+        size=reviews_page.size,
+    )
 
 
 @router.get(
