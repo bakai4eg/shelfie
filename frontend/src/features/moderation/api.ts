@@ -9,7 +9,7 @@ export interface ReportCreatePayload {
 }
 
 export interface ReportResolvePayload {
-  decision: "rejected" | "hidden" | "deleted";
+  decision: "reject" | "hide" | "delete" | "rejected" | "hidden" | "deleted";
   reason?: string | null;
 }
 

@@ -5,9 +5,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-TargetType = Literal["review", "comment", "card", "profile"]
+TargetType = Literal["review", "comment", "card", "profile", "item", "user"]
 ReportReason = Literal["spam", "insult", "false_info", "copyright", "other"]
-ReportResolution = Literal["reject", "hide", "delete"]
+ReportResolution = Literal["reject", "hide", "delete", "rejected", "hidden", "deleted"]
 
 
 class ReportCreate(BaseModel):

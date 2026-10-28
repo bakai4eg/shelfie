@@ -14,8 +14,11 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
 
 const DECISION_LABELS: Record<string, string> = {
   hidden: "Объект скрыт",
+  hide: "Объект скрыт",
   deleted: "Объект удалён",
+  delete: "Объект удалён",
   rejected: "Жалоба отклонена",
+  reject: "Жалоба отклонена",
 };
 
 export default function ModerationPage() {
@@ -202,7 +205,7 @@ export default function ModerationPage() {
                       <Button
                         type="button"
                         disabled={isResolving}
-                        onClick={() => handleResolve(report.id, "hidden")}
+                        onClick={() => handleResolve(report.id, "hide")}
                       >
                         Скрыть объект
                       </Button>
@@ -210,7 +213,7 @@ export default function ModerationPage() {
                         type="button"
                         variant="secondary"
                         disabled={isResolving}
-                        onClick={() => handleResolve(report.id, "deleted")}
+                        onClick={() => handleResolve(report.id, "delete")}
                         className="text-red-600 hover:bg-red-50"
                       >
                         Удалить объект
@@ -219,7 +222,7 @@ export default function ModerationPage() {
                         type="button"
                         variant="ghost"
                         disabled={isResolving}
-                        onClick={() => handleResolve(report.id, "rejected")}
+                        onClick={() => handleResolve(report.id, "reject")}
                       >
                         Отклонить жалобу
                       </Button>

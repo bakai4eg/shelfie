@@ -128,25 +128,25 @@ async def resolve_report(
     report.resolved_by = moderator.id
     report.resolved_at = now
 
-    if decision == "reject":
+    if decision in ("reject", "rejected"):
         report.status = "closed"
-    elif decision == "hide":
+    elif decision in ("hide", "hidden"):
         report.status = "resolved"
         if report.target_type == "review":
             review = await db.scalar(select(Review).where(Review.id == report.target_id))
             if review:
                 review.is_hidden = True
-        elif report.target_type == "card":
+        elif report.target_type in ("card", "item"):
             item = await db.scalar(select(CatalogItem).where(CatalogItem.id == report.target_id))
             if item:
                 item.moderation_status = MODERATION_HIDDEN
-    elif decision == "delete":
+    elif decision in ("delete", "deleted"):
         report.status = "resolved"
         if report.target_type == "review":
             review = await db.scalar(select(Review).where(Review.id == report.target_id))
             if review:
                 await db.delete(review)
-        elif report.target_type == "card":
+        elif report.target_type in ("card", "item"):
             item = await db.scalar(select(CatalogItem).where(CatalogItem.id == report.target_id))
             if item:
                 await db.delete(item)
