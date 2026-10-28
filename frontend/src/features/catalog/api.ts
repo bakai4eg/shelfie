@@ -47,3 +47,7 @@ export function fetchCatalog(
 export function fetchCatalogFilters(signal?: AbortSignal): Promise<CatalogFilters> {
   return api.get<CatalogFilters>("/catalog/filters", { signal });
 }
+
+export function fetchItem(itemId: number, signal?: AbortSignal): Promise<CatalogItem> {
+  return api.get<CatalogItem>(`/catalog/${itemId}`, { signal });
+}

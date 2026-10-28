@@ -45,6 +45,7 @@ export interface CatalogItem {
   type: ItemType;
   title: string;
   original_title: string | null;
+  description: string | null;
   year: number | null;
   country: string | null;
   genres: string[];
@@ -53,6 +54,7 @@ export interface CatalogItem {
   ratings_count: number;
   is_local: boolean;
   source: ItemSource;
+  created_at?: string;
 }
 
 export type CatalogSort = "relevance" | "year_desc" | "rating_desc" | "title_asc";
@@ -98,4 +100,59 @@ export interface ListPreview {
   title: string;
   theme: ListTheme;
   items_count: number;
+}
+
+export interface ShelfEntry {
+  id: number;
+  item_id: number;
+  status: ShelfStatus;
+  finished_at: string | null;
+  item: CatalogItem;
+  user_rating: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Review {
+  id: number;
+  item_id: number;
+  user_login: string;
+  user_avatar_url: string | null;
+  title: string;
+  body: string;
+  rating: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserShort {
+  login: string;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
+export interface FollowState {
+  is_following: boolean;
+  followers: number;
+  following: number;
+}
+
+export interface Report {
+  id: number;
+  reporter_id: number;
+  reporter_login: string;
+  target_type: string;
+  target_id: number;
+  reason: string;
+  comment: string | null;
+  status: string;
+  resolution: string | null;
+  resolution_reason: string | null;
+  created_at: string;
+}
+
+export interface RatingResult {
+  value: number;
+  rating_avg: number | null;
+  ratings_count: number;
 }
