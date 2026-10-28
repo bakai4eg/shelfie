@@ -28,18 +28,6 @@ SEED_ITEMS: list[dict] = [
     {
         "type": ITEM_BOOK,
         "source": SOURCE_LOCAL,
-        "title": "Манас",
-        "original_title": "Манас",
-        "year": 2010,
-        "country": "Кыргызстан",
-        "genres": ["эпос", "классика"],
-        "description": "Кыргызский эпос о богатыре Манасе и его сподвижниках.",
-        "is_local": True,
-        "moderation_status": MODERATION_APPROVED,
-    },
-    {
-        "type": ITEM_BOOK,
-        "source": SOURCE_LOCAL,
         "title": "Джамиля",
         "original_title": "Жамийла",
         "year": 1958,
