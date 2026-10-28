@@ -84,3 +84,17 @@ export interface PublicProfile {
   stats: UserStats;
   is_following: boolean;
 }
+
+export interface ReviewPreview {
+  id: number;
+  title: string;
+  rating: number | null;
+  created_at: string;
+}
+
+export interface ListPreview {
+  id: number;
+  title: string;
+  theme: ListTheme;
+  items_count: number;
+}
