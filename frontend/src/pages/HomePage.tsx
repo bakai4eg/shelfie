@@ -1,7 +1,7 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
+import { useAuth } from "@/features/auth/context";
 import { buttonClass } from "@/lib/ui";
-import { REPO_URL } from "@/lib/constants";
 
 const FEATURES = [
   {
@@ -19,11 +19,13 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
+  const { user } = useAuth();
+
   return (
     <div>
       <section className="mx-auto max-w-6xl px-4 pb-14 pt-16 sm:pt-24">
         <p className="text-xs font-medium uppercase tracking-widest text-accent-600">
-          ТКРПО · ПИ-1-24 · КГТУ им. И. Раззакова
+          Книги · Фильмы · Сериалы
         </p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-shelf-900 sm:text-5xl">
           Полка для книг, фильмов и сериалов — и люди, с которыми интересно смотреть.
@@ -37,14 +39,15 @@ export default function HomePage() {
           <Link to="/catalog" className={buttonClass("primary", "px-5 py-2.5")}>
             Открыть каталог
           </Link>
-          <a
-            href={`${REPO_URL}/blob/main/docs/tz/tz.md`}
-            target="_blank"
-            rel="noreferrer"
-            className={buttonClass("secondary", "px-5 py-2.5")}
-          >
-            Техническое задание
-          </a>
+          {user ? (
+            <Link to={`/u/${user.login}`} className={buttonClass("secondary", "px-5 py-2.5")}>
+              Мой профиль
+            </Link>
+          ) : (
+            <Link to="/register" className={buttonClass("secondary", "px-5 py-2.5")}>
+              Создать аккаунт
+            </Link>
+          )}
         </div>
       </section>
 
@@ -56,31 +59,6 @@ export default function HomePage() {
               <p className="mt-2 text-sm leading-relaxed text-shelf-700">{feature.text}</p>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="rounded-2xl border border-dashed border-shelf-300 p-6 sm:p-8">
-          <h2 className="text-lg font-semibold text-shelf-900">Проект в разработке</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-shelf-700">
-            Каркас репозитория, документация и доска задач готовы. Экраны наполняются по этапам: от
-            регистрации и профиля до модерации и ленты активности. Актуальный статус — на доске задач,
-            архитектура и контракт API — в документации.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
-            <a className="text-accent-600 hover:text-accent-700" href={`${REPO_URL}/blob/main/tasks/board.md`} target="_blank" rel="noreferrer">
-              Доска задач →
-            </a>
-            <a className="text-accent-600 hover:text-accent-700" href={`${REPO_URL}/blob/main/docs/architecture.md`} target="_blank" rel="noreferrer">
-              Архитектура →
-            </a>
-            <a className="text-accent-600 hover:text-accent-700" href={`${REPO_URL}/blob/main/docs/api.md`} target="_blank" rel="noreferrer">
-              API →
-            </a>
-            <a className="text-accent-600 hover:text-accent-700" href={`${REPO_URL}/blob/main/CONTRIBUTING.md`} target="_blank" rel="noreferrer">
-              Как запустить →
-            </a>
-          </div>
         </div>
       </section>
     </div>

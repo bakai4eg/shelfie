@@ -1,35 +1,25 @@
-import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
-import { TASK_URL } from "@/lib/constants";
+import { buttonClass } from "@/lib/ui";
 
 interface ComingSoonProps {
-  /** ID задачи из tasks/board.md — по нему открывается карточка на GitHub. */
-  task: string;
   title: string;
-  children?: ReactNode;
+  description?: string;
 }
 
-/**
- * Заглушка страницы: маршрут уже существует, экран не пустой,
- * и сразу видно, какая задача его наполняет.
- */
-export default function ComingSoon({ task, title, children }: ComingSoonProps) {
+export default function ComingSoon({ title, description }: ComingSoonProps) {
   return (
-    <section className="mx-auto max-w-2xl px-4 py-16">
-      <p className="text-xs font-medium uppercase tracking-wider text-shelf-500">В разработке</p>
-      <h1 className="mt-2 text-3xl font-semibold text-shelf-900">{title}</h1>
-      <div className="mt-4 space-y-3 text-shelf-700">
-        {children ?? <p>Экран появится в следующем этапе проекта.</p>}
-      </div>
-      <a
-        href={TASK_URL(task)}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-shelf-900 px-4 py-2 text-sm font-medium text-shelf-50 transition-colors hover:bg-shelf-800"
-      >
-        Задача {task}
-        <span aria-hidden>→</span>
-      </a>
+    <section className="mx-auto max-w-xl px-4 py-24 text-center">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent-600">
+        Shelfie
+      </p>
+      <h1 className="mt-3 text-3xl font-semibold text-shelf-900">{title}</h1>
+      <p className="mt-3 text-shelf-700">
+        {description ?? "Этот раздел пока недоступен."}
+      </p>
+      <Link to="/catalog" className={buttonClass("primary", "mt-8 px-5 py-2.5")}>
+        В каталог
+      </Link>
     </section>
   );
 }

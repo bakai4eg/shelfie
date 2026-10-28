@@ -3,8 +3,6 @@
 import type { Role } from "@/lib/types";
 
 export const REPO_URL = "https://github.com/bakai4eg/shelfie";
-export const TASK_URL = (taskId: string) =>
-  `${REPO_URL}/blob/main/tasks/${taskId}.md`;
 
 export const ITEM_TYPE_LABELS = {
   book: "Книга",

@@ -1,14 +1,9 @@
 import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/context";
-import { ROLE_LEVEL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { to: "/catalog", label: "Каталог" },
-  { to: "/my/library", label: "Мои полки" },
-  { to: "/feed", label: "Лента" },
-];
+const NAV = [{ to: "/catalog", label: "Каталог" }];
 
 function Logo() {
   return (
@@ -28,21 +23,13 @@ function Logo() {
 export default function Header() {
   const { user, status, logout } = useAuth();
 
-  const links = [...NAV];
-  if (user && ROLE_LEVEL[user.role] >= ROLE_LEVEL.moderator) {
-    links.push({ to: "/moderation", label: "Модерация" });
-  }
-  if (user?.role === "admin") {
-    links.push({ to: "/admin", label: "Админка" });
-  }
-
   return (
     <header className="sticky top-0 z-10 border-b border-shelf-200 bg-shelf-50/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Logo />
 
         <nav className="hidden items-center gap-1 sm:flex">
-          {links.map((item) => (
+          {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
