@@ -4,9 +4,11 @@ import { Link, useParams } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/context";
 import { profileApi } from "@/features/profile/api";
+import { socialApi } from "@/features/social/api";
 import { ApiError } from "@/lib/api";
 import type { ListPreview, PublicProfile, ReviewPreview, UserStats } from "@/lib/types";
 import { buttonClass } from "@/lib/ui";
+import { formatDate } from "@/lib/utils";
 
 const STATS: { key: keyof UserStats; label: string }[] = [
   { key: "books_read", label: "Книг прочитано" },
@@ -18,14 +20,6 @@ const STATS: { key: keyof UserStats; label: string }[] = [
   { key: "followers", label: "Подписчиков" },
   { key: "following", label: "Подписок" },
 ];
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
-}
 
 function statValue(key: keyof UserStats, stats: UserStats): string {
   if (key === "rating_avg") {
@@ -73,6 +67,7 @@ export default function ProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,6 +104,38 @@ export default function ProfilePage() {
 
     return () => controller.abort();
   }, [login, reloadKey]);
+
+  const handleToggleFollow = async () => {
+    if (!profile || followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (profile.is_following) {
+        const res = await socialApi.unfollow(profile.login);
+        setProfile({
+          ...profile,
+          is_following: false,
+          stats: {
+            ...profile.stats,
+            followers: res.followers,
+          },
+        });
+      } else {
+        const res = await socialApi.follow(profile.login);
+        setProfile({
+          ...profile,
+          is_following: true,
+          stats: {
+            ...profile.stats,
+            followers: res.followers,
+          },
+        });
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Не удалось изменить статус подписки");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -165,19 +192,40 @@ export default function ProfilePage() {
         )}
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-3xl font-semibold text-shelf-900">@{profile.login}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl font-semibold text-shelf-900">@{profile.login}</h1>
+            {isOwn ? (
+              <Link to="/settings" className={buttonClass("secondary")}>
+                Редактировать профиль
+              </Link>
+            ) : user ? (
+              <Button
+                variant={profile.is_following ? "secondary" : "primary"}
+                disabled={followLoading}
+                onClick={handleToggleFollow}
+              >
+                {followLoading
+                  ? "Обновление..."
+                  : profile.is_following
+                  ? "Отписаться"
+                  : "Подписаться"}
+              </Button>
+            ) : (
+              <Link
+                to={`/login?next=${encodeURIComponent(`/u/${profile.login}`)}`}
+                className={buttonClass("primary")}
+              >
+                Подписаться
+              </Link>
+            )}
+          </div>
+
           <p className="mt-1 text-sm text-shelf-500">
             На Shelfie с {formatDate(profile.registered_at)}
           </p>
           <p className="mt-3 max-w-2xl text-shelf-700">
             {profile.bio ?? "Пользователь пока ничего о себе не рассказал."}
           </p>
-
-          {isOwn && (
-            <Link to="/settings" className={buttonClass("secondary", "mt-4")}>
-              Редактировать профиль
-            </Link>
-          )}
         </div>
       </header>
 
@@ -225,7 +273,7 @@ export default function ProfilePage() {
           Публичные списки
         </h2>
         {lists.length === 0 ? (
-          <EmptyState text="Пока нет публичных списков." />
+          <EmptyState text="Публичные списки пока не созданы." />
         ) : (
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
             {lists.map((list) => (
