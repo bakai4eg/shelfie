@@ -5,9 +5,11 @@
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -37,3 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+
+# Аватары и локальные обложки: путь относительно MEDIA_ROOT (ТЗ 4.2.4).
+Path(settings.media_root).mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.media_root), name="media")

@@ -4,11 +4,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.media import avatar_url
+from app.core.media import avatar_url, delete_avatar, save_avatar
+from app.core.security import hash_password, verify_password
 from app.models.user import User
-from app.schemas.profile import PublicProfile, UserStats
+from app.schemas.profile import ProfileUpdate, PublicProfile, UserStats
+from app.services.auth import revoke_all_sessions
 
 USER_NOT_FOUND = "Пользователь не найден"
+INVALID_CURRENT_PASSWORD = "Неверный текущий пароль"
 
 
 async def get_user_by_login(db: AsyncSession, login: str) -> User:
@@ -46,3 +49,43 @@ async def public_profile(
         # TODO(T5.4): подписки появятся вместе с таблицей follows.
         is_following=False,
     )
+
+
+async def update_bio(db: AsyncSession, user: User, payload: ProfileUpdate) -> PublicProfile:
+    """PATCH: если поле не передали — не трогаем; пустая строка очищает."""
+    if "bio" in payload.model_fields_set:
+        user.bio = payload.bio
+        await db.commit()
+        await db.refresh(user)
+    return await public_profile(db, user, user)
+
+
+async def set_avatar(db: AsyncSession, user: User, data: bytes, content_type: str) -> str:
+    """Сохраняет новый файл и удаляет старый. В БД — относительный путь."""
+    relative = save_avatar(data, content_type)
+    delete_avatar(user.avatar_path)
+    user.avatar_path = relative
+    await db.commit()
+    await db.refresh(user)
+    return avatar_url(relative) or ""
+
+
+async def remove_avatar(db: AsyncSession, user: User) -> None:
+    delete_avatar(user.avatar_path)
+    user.avatar_path = None
+    await db.commit()
+
+
+async def change_password(
+    db: AsyncSession,
+    user: User,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """После смены пароля отзываем все сессии, включая текущую (ТЗ 4.2.4)."""
+    if not verify_password(current_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, INVALID_CURRENT_PASSWORD)
+
+    user.password_hash = hash_password(new_password)
+    await db.commit()
+    await revoke_all_sessions(db, user.id)

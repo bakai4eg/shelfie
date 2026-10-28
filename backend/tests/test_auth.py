@@ -31,6 +31,7 @@ def test_register_returns_token_and_user(client):
         "login": "bakai",
         "email": "bakai@example.com",
         "role": "user",
+        "avatar_url": None,
     }
     assert "password" not in data["user"]
     assert "password_hash" not in data["user"]

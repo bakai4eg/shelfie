@@ -65,10 +65,24 @@ export default function Header() {
             <>
               <Link
                 to={`/u/${user.login}`}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-shelf-900 hover:bg-shelf-100"
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium text-shelf-900 hover:bg-shelf-100"
                 title="Мой профиль"
               >
-                {user.login}
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={`Аватар @${user.login}`}
+                    className="h-7 w-7 rounded-full object-cover ring-1 ring-shelf-300"
+                  />
+                ) : (
+                  <span
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-600 text-xs font-semibold text-white"
+                    aria-hidden
+                  >
+                    {user.login.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <span>{user.login}</span>
               </Link>
               <button
                 type="button"

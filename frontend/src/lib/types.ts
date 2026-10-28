@@ -18,6 +18,7 @@ export interface User {
   login: string;
   email: string;
   role: Role;
+  avatar_url: string | null;
 }
 
 export interface LoginPayload {

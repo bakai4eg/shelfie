@@ -88,9 +88,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [navigate]);
 
+  const refresh = useCallback(async () => {
+    const current = await authApi.me();
+    setUser(current);
+    setStatus("authenticated");
+  }, []);
+
+  const clearSession = useCallback(() => {
+    tokenStore.clear();
+    setUser(null);
+    setStatus("guest");
+  }, []);
+
   const value = useMemo(
-    () => ({ user, status, login, register, logout }),
-    [user, status, login, register, logout],
+    () => ({ user, status, login, register, logout, refresh, clearSession }),
+    [user, status, login, register, logout, refresh, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
