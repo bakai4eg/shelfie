@@ -56,9 +56,7 @@ export default function LoginPage() {
   return (
     <section className="mx-auto max-w-md px-4 py-12 sm:py-16">
       <h1 className="text-3xl font-semibold text-shelf-900">Вход</h1>
-      <p className="mt-2 text-sm text-shelf-700">
-        Логин или e-mail и пароль. Сессия сохранится после перезагрузки страницы.
-      </p>
+      <p className="mt-2 text-sm text-shelf-700">Логин или e-mail и пароль.</p>
 
       {passwordChanged ? (
         <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-900 ring-1 ring-green-200" role="status">

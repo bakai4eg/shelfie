@@ -2,8 +2,6 @@
 
 import type { Role } from "@/lib/types";
 
-export const REPO_URL = "https://github.com/bakai4eg/shelfie";
-
 export const ITEM_TYPE_LABELS = {
   book: "Книга",
   movie: "Фильм",
