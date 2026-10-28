@@ -4,8 +4,12 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import ITEM_BOOK, ITEM_MOVIE, ITEM_SERIES, STATUS_FINISHED
 from app.core.media import avatar_url, delete_avatar, save_avatar
 from app.core.security import hash_password, verify_password
+from app.models.catalog import CatalogItem
+from app.models.library import Rating, ShelfEntry
+from app.models.social import Follow, Review
 from app.models.user import User
 from app.schemas.profile import ProfileUpdate, PublicProfile, UserStats
 from app.services.auth import revoke_all_sessions
@@ -24,15 +28,77 @@ async def get_user_by_login(db: AsyncSession, login: str) -> User:
 
 
 async def user_stats(db: AsyncSession, user: User) -> UserStats:
-    """Заглушка до появления полок, оценок, рецензий и подписок.
+    """Реальные данные статистики пользователя (ТЗ 4.2.3)."""
+    # finished по типам
+    books_read = await db.scalar(
+        select(func.count(ShelfEntry.id))
+        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+        .where(
+            ShelfEntry.user_id == user.id,
+            ShelfEntry.status == STATUS_FINISHED,
+            CatalogItem.type == ITEM_BOOK,
+        )
+    ) or 0
 
-    TODO(T2.4): books_read / movies_watched / series_watched из `user_items`.
-    TODO(T3.3): ratings_count и rating_avg — только по выставленным оценкам.
-    TODO(T4.3): reviews_count из `reviews`.
-    TODO(T5.4): followers / following из `follows`.
-    Средняя считается как сумма/количество; при нуле оценок — 0.0, без деления.
-    """
-    return UserStats()
+    movies_watched = await db.scalar(
+        select(func.count(ShelfEntry.id))
+        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+        .where(
+            ShelfEntry.user_id == user.id,
+            ShelfEntry.status == STATUS_FINISHED,
+            CatalogItem.type == ITEM_MOVIE,
+        )
+    ) or 0
+
+    series_watched = await db.scalar(
+        select(func.count(ShelfEntry.id))
+        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+        .where(
+            ShelfEntry.user_id == user.id,
+            ShelfEntry.status == STATUS_FINISHED,
+            CatalogItem.type == ITEM_SERIES,
+        )
+    ) or 0
+
+    # оценки
+    avg_val, count_val = (
+        await db.execute(
+            select(
+                func.coalesce(func.avg(Rating.value), 0.0),
+                func.count(Rating.id),
+            ).where(Rating.user_id == user.id)
+        )
+    ).one()
+    rating_avg = round(float(avg_val or 0.0), 2)
+    ratings_count = int(count_val or 0)
+
+    # рецензии
+    reviews_count = await db.scalar(
+        select(func.count(Review.id)).where(
+            Review.user_id == user.id,
+            Review.is_hidden.is_(False),
+        )
+    ) or 0
+
+    # подписчики и подписки
+    followers = await db.scalar(
+        select(func.count(Follow.id)).where(Follow.following_id == user.id)
+    ) or 0
+
+    following = await db.scalar(
+        select(func.count(Follow.id)).where(Follow.follower_id == user.id)
+    ) or 0
+
+    return UserStats(
+        books_read=books_read,
+        movies_watched=movies_watched,
+        series_watched=series_watched,
+        ratings_count=ratings_count,
+        rating_avg=rating_avg,
+        reviews_count=reviews_count,
+        followers=followers,
+        following=following,
+    )
 
 
 async def public_profile(
@@ -40,14 +106,23 @@ async def public_profile(
     user: User,
     viewer: User | None = None,
 ) -> PublicProfile:
+    following_target = False
+    if viewer and viewer.id != user.id:
+        is_fol = await db.scalar(
+            select(Follow.id).where(
+                Follow.follower_id == viewer.id,
+                Follow.following_id == user.id,
+            )
+        )
+        following_target = is_fol is not None
+
     return PublicProfile(
         login=user.login,
         avatar_url=avatar_url(user.avatar_path),
         bio=user.bio,
         registered_at=user.created_at,
         stats=await user_stats(db, user),
-        # TODO(T5.4): подписки появятся вместе с таблицей follows.
-        is_following=False,
+        is_following=following_target,
     )
 
 

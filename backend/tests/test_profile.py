@@ -1,4 +1,11 @@
-"""Публичный профиль и его разделы (T1.3)."""
+"""Публичный профиль и его разделы (T1.3, ТЗ 4.2.3)."""
+
+import asyncio
+
+from app.core.constants import MODERATION_APPROVED
+from app.db.session import get_session
+from app.main import app
+from app.models.catalog import CatalogItem
 
 
 def register(client, login: str = "elvina") -> dict:
@@ -8,6 +15,27 @@ def register(client, login: str = "elvina") -> dict:
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def add_item(title: str, item_type: str) -> int:
+    async def _add():
+        async for session in app.dependency_overrides[get_session]():
+            item = CatalogItem(
+                type=item_type,
+                title=title,
+                moderation_status=MODERATION_APPROVED,
+                is_local=False,
+            )
+            session.add(item)
+            await session.commit()
+            await session.refresh(item)
+            return item.id
+
+    return asyncio.run(_add())
 
 
 def test_public_profile_is_open_to_guest(client):
@@ -81,3 +109,74 @@ def test_section_pagination_is_validated(client):
 
     assert client.get("/api/users/reader/reviews", params={"page": 0}).status_code == 422
     assert client.get("/api/users/reader/lists", params={"size": 101}).status_code == 422
+
+
+def test_profile_stats_update_dynamically(client):
+    u = register(client, "active_user")
+    other = register(client, "other_user")
+    h = auth(u["access_token"])
+    h_other = auth(other["access_token"])
+
+    book_id = add_item("Книга 1", "book")
+    movie_id = add_item("Фильм 1", "movie")
+    series_id = add_item("Сериал 1", "series")
+
+    # 1. Полка: сначала watching (не finished)
+    client.put(f"/api/me/library/{book_id}", json={"status": "watching"}, headers=h)
+    stats = client.get("/api/users/active_user").json()["stats"]
+    assert stats["books_read"] == 0
+
+    # переводим в finished
+    client.put(
+        f"/api/me/library/{book_id}",
+        json={"status": "finished", "finished_at": "2026-10-28"},
+        headers=h,
+    )
+    # добавляем фильм и сериал в finished
+    client.put(
+        f"/api/me/library/{movie_id}",
+        json={"status": "finished", "finished_at": "2026-10-28"},
+        headers=h,
+    )
+    client.put(
+        f"/api/me/library/{series_id}",
+        json={"status": "finished", "finished_at": "2026-10-28"},
+        headers=h,
+    )
+
+    stats = client.get("/api/users/active_user").json()["stats"]
+    assert stats["books_read"] == 1
+    assert stats["movies_watched"] == 1
+    assert stats["series_watched"] == 1
+
+    # 2. Оценки
+    client.put(f"/api/me/ratings/{book_id}", json={"value": 8}, headers=h)
+    client.put(f"/api/me/ratings/{movie_id}", json={"value": 10}, headers=h)
+
+    stats = client.get("/api/users/active_user").json()["stats"]
+    assert stats["ratings_count"] == 2
+    assert stats["rating_avg"] == 9.0
+
+    # 3. Рецензия
+    client.post(
+        f"/api/catalog/{movie_id}/reviews",
+        json={"title": "Отличный фильм", "body": "Очень понравился сюжет", "rating": 10},
+        headers=h,
+    )
+    stats = client.get("/api/users/active_user").json()["stats"]
+    assert stats["reviews_count"] == 1
+
+    # Рецензия видна в /users/{login}/reviews
+    user_revs = client.get("/api/users/active_user/reviews").json()
+    assert user_revs["total"] == 1
+    assert user_revs["items"][0]["title"] == "Отличный фильм"
+
+    # 4. Подписчики и подписки
+    # other_user подписывается на active_user
+    client.post("/api/users/active_user/follow", headers=h_other)
+    # active_user подписывается на other_user
+    client.post("/api/users/other_user/follow", headers=h)
+
+    stats = client.get("/api/users/active_user").json()["stats"]
+    assert stats["followers"] == 1
+    assert stats["following"] == 1

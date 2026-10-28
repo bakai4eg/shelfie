@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import OptionalUser, SessionDep
 from app.schemas.catalog import (
@@ -14,6 +14,7 @@ from app.schemas.catalog import (
 )
 from app.schemas.common import Page
 from app.services.catalog import catalog_filters, search_catalog
+from app.services.library import get_visible_item
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
@@ -66,3 +67,13 @@ async def list_catalog(
 @router.get("/filters", response_model=CatalogFilters, summary="Значения фильтров")
 async def get_filters(db: SessionDep, user: OptionalUser) -> CatalogFilters:
     return CatalogFilters(**await catalog_filters(db, user=user))
+
+
+@router.get("/{item_id}", response_model=CatalogItemRead, summary="Просмотр карточки")
+async def get_catalog_item(
+    item_id: int, db: SessionDep, user: OptionalUser
+) -> CatalogItemRead:
+    item = await get_visible_item(db, item_id, user)
+    if not item:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Карточка не найдена")
+    return CatalogItemRead.model_validate(item)
