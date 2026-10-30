@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     debug: bool = True
     secret_key: str = "dev-only-secret-key-change-me-in-production"
     access_token_expire_minutes: int = 60 * 24
-    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_origins: list[str] | str = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     # база данных
     database_url: str = "sqlite+aiosqlite:///./shelfie.sqlite3"
@@ -36,11 +36,20 @@ class Settings(BaseSettings):
     media_root: str = "media"
     max_upload_size_mb: int = 5
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", mode="after")
     @classmethod
     def split_origins(cls, value: str | list[str]) -> list[str]:
         if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
+            val = value.strip()
+            if val.startswith("[") and val.endswith("]"):
+                try:
+                    import json
+                    parsed = json.loads(val)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+            return [origin.strip() for origin in val.split(",") if origin.strip()]
         return value
 
     @property
