@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     google_books_base_url: str = "https://www.googleapis.com/books/v1"
     cache_ttl_days: int = 7
     external_timeout_seconds: int = 8
+    enable_external_providers: bool = True
 
     # файлы
     media_root: str = "media"

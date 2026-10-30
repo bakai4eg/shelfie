@@ -8,6 +8,13 @@ export const ITEM_TYPE_LABELS = {
   series: "Сериал",
 } as const;
 
+export const ITEM_SOURCE_LABELS: Record<string, string> = {
+  local: "Локально",
+  tmdb: "TMDB",
+  openlibrary: "Open Library",
+  google_books: "Google Books",
+};
+
 export const SHELF_STATUS_LABELS = {
   watching: "Читаю / Смотрю",
   finished: "Прочитано / Просмотрено",

@@ -86,11 +86,16 @@ function CatalogCard({ item }: { item: CatalogItem }) {
             {ITEM_TYPE_LABELS[item.type]}
           </div>
         )}
-        {item.is_local && (
-          <span className="absolute left-2 top-2 rounded-full bg-accent-600 px-2 py-0.5 text-xs font-medium text-white">
-            Кыргызстан
+        <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          {item.is_local && (
+            <span className="rounded-full bg-accent-600 px-2 py-0.5 text-xs font-medium text-white shadow-sm">
+              Кыргызстан
+            </span>
+          )}
+          <span className="rounded-full bg-shelf-900/70 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-xs shadow-sm">
+            {SOURCE_LABELS[item.source] ?? item.source}
           </span>
-        )}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
@@ -398,9 +403,15 @@ export default function CatalogPage() {
         <div className="mt-10 rounded-2xl border border-dashed border-shelf-300 p-10 text-center">
           <p className="text-lg font-medium text-shelf-900">Ничего не нашлось</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-shelf-600">
-            Попробуйте изменить фильтры — или создайте карточку: после проверки модератором она
-            появится в каталоге.
+            {query.q
+              ? "По вашему запросу ничего не найдено в каталоге. Если внешние сервисы временно недоступны или карточки ещё нет — вы можете создать её вручную."
+              : "Попробуйте изменить фильтры — или создайте карточку: после проверки модератором она появится в каталоге."}
           </p>
+          {query.q && (
+            <p className="mx-auto mt-3 max-w-md text-xs text-amber-700 bg-amber-50 rounded-lg py-1.5 px-3">
+              Часть внешних источников может быть временно недоступна из-за ограничений сети. Сохранённые ранее материалы доступны всегда.
+            </p>
+          )}
           <Button className="mt-5" onClick={reset}>
             Сбросить фильтры
           </Button>

@@ -8,7 +8,12 @@ import { fetchItem } from "@/features/catalog/api";
 import { libraryApi } from "@/features/library/api";
 import { moderationApi, type ReportCreatePayload } from "@/features/moderation/api";
 import { reviewsApi } from "@/features/reviews/api";
-import { ITEM_TYPE_LABELS, REPORT_REASON_LABELS, SHELF_STATUS_LABELS } from "@/lib/constants";
+import {
+  ITEM_SOURCE_LABELS,
+  ITEM_TYPE_LABELS,
+  REPORT_REASON_LABELS,
+  SHELF_STATUS_LABELS,
+} from "@/lib/constants";
 import type { CatalogItem, Review, ShelfEntry, ShelfStatus } from "@/lib/types";
 import { buttonClass } from "@/lib/ui";
 import { cn, formatDate, formatRating } from "@/lib/utils";
@@ -365,19 +370,29 @@ export default function ItemPage() {
               {ITEM_TYPE_LABELS[item.type]}
             </div>
           )}
-          {item.is_local && (
-            <span className="absolute left-3 top-3 rounded-full bg-accent-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
-              Кыргызстан
+          <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+            {item.is_local && (
+              <span className="rounded-full bg-accent-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                Кыргызстан
+              </span>
+            )}
+            <span className="rounded-full bg-shelf-900/75 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-xs shadow-sm">
+              {ITEM_SOURCE_LABELS[item.source] ?? item.source}
             </span>
-          )}
+          </div>
         </div>
 
         {/* Данные карточки */}
         <div className="flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex rounded-lg bg-shelf-100 px-2.5 py-1 text-xs font-medium text-shelf-700">
-              {ITEM_TYPE_LABELS[item.type]}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex rounded-lg bg-shelf-100 px-2.5 py-1 text-xs font-medium text-shelf-700">
+                {ITEM_TYPE_LABELS[item.type]}
+              </span>
+              <span className="inline-flex rounded-lg bg-shelf-100 px-2.5 py-1 text-xs font-medium text-shelf-600">
+                Источник: {ITEM_SOURCE_LABELS[item.source] ?? item.source}
+              </span>
+            </div>
             {user && (
               <button
                 type="button"

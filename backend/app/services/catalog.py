@@ -9,12 +9,14 @@
 from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.constants import (
     MODERATION_APPROVED,
     MODERATION_HIDDEN,
     MODERATION_PENDING,
     ROLE_ADMIN,
     ROLE_MODERATOR,
+    SOURCE_LOCAL,
 )
 from app.models.catalog import CatalogItem
 from app.models.user import User
@@ -79,8 +81,24 @@ async def search_catalog(
     sort: str = "relevance",
     page: int = 1,
     size: int = 20,
+    sync_external: bool = True,
 ) -> tuple[list[CatalogItem], int]:
     """Возвращает страницу карточек и общее количество по фильтрам."""
+    if (
+        sync_external
+        and settings.enable_external_providers
+        and query
+        and query.strip()
+        and not local_only
+        and source != SOURCE_LOCAL
+    ):
+        from app.services.integrations import sync_external_catalog
+
+        try:
+            await sync_external_catalog(db, query, item_type)
+        except Exception:
+            pass  # сбои внешних сетей не прерывают локальный поиск
+
     conditions = [visibility_clause(user)]
 
     if query and query.strip():

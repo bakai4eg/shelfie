@@ -9,9 +9,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import app.models  # noqa: F401 — регистрирует модели в Base.metadata
+from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def disable_external_providers():
+    old = settings.enable_external_providers
+    settings.enable_external_providers = False
+    yield
+    settings.enable_external_providers = old
 
 
 @pytest.fixture
