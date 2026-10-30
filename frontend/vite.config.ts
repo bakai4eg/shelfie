@@ -17,12 +17,12 @@ export default defineConfig({
     // Удобно для локальной разработки: /api уходит на бэкенд без настройки CORS.
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
         changeOrigin: true,
       },
       // Аватарки и обложки каталога отдаёт FastAPI (/media), не Vite.
       "/media": {
-        target: "http://localhost:8000",
+        target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
         changeOrigin: true,
       },
     },
