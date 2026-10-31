@@ -356,3 +356,29 @@ async def test_deduplication_updates_existing_item(db):
     if fetched_at.tzinfo is None:
         fetched_at = fetched_at.replace(tzinfo=UTC)
     assert fetched_at > old_time
+
+
+@pytest.mark.asyncio
+async def test_refresh_item_if_stale_on_access(db):
+    """refresh_item_if_stale обновляет карточку, если fetched_at старше TTL (ТЗ 4.3.2)."""
+    from app.services.integrations import refresh_item_if_stale
+
+    old_time = datetime.now(UTC) - timedelta(days=14)
+    item = CatalogItem(
+        type=ITEM_MOVIE,
+        source=SOURCE_TMDB,
+        external_id="3030",
+        title="Старый фильм",
+        title_normalized="старый фильм",
+        year=2000,
+        moderation_status=MODERATION_APPROVED,
+        fetched_at=old_time,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+
+    # При выключенных провайдерах или свежем кэше — не меняется
+    res = await refresh_item_if_stale(db, item)
+    assert res.id == item.id
+

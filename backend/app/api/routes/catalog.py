@@ -76,4 +76,7 @@ async def get_catalog_item(
     item = await get_visible_item(db, item_id, user)
     if not item:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Карточка не найдена")
+    from app.services.integrations import refresh_item_if_stale
+
+    item = await refresh_item_if_stale(db, item)
     return CatalogItemRead.model_validate(item)

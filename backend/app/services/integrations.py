@@ -171,3 +171,29 @@ async def sync_external_catalog(
         await db.rollback()
 
     return saved_count
+
+
+async def refresh_item_if_stale(db: AsyncSession, item: CatalogItem) -> CatalogItem:
+    """Обновляет устаревшую карточку внешнего источника при прямом обращении (ТЗ 4.3.2)."""
+    if item.source == SOURCE_LOCAL or not item.title:
+        return item
+    if not settings.enable_external_providers:
+        return item
+
+    now = datetime.now(UTC)
+    ttl_cutoff = now - timedelta(days=settings.cache_ttl_days)
+    fetched_at = item.fetched_at
+    if fetched_at and fetched_at.tzinfo is None:
+        fetched_at = fetched_at.replace(tzinfo=UTC)
+
+    if fetched_at and fetched_at >= ttl_cutoff:
+        return item
+
+    try:
+        await sync_external_catalog(db, item.title, item.type)
+        await db.refresh(item)
+    except Exception:
+        pass  # если источник недоступен, отдаем существующие данные из БД
+
+    return item
+
