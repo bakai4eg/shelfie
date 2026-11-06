@@ -178,3 +178,72 @@ def test_hidden_card_returns_404(client):
         f"{API}/me/ratings/{hidden_id}", json={"value": 5}, headers=headers
     )
     assert rating_res.status_code == 404
+
+
+def test_shelf_filters_and_sorting_without_ratings(client):
+    """Сортировка «по оценке» не падает, если оценок ещё нет (приёмка T2.4)."""
+    user = register(client, "sorter")
+    headers = auth(user["access_token"])
+    book_id = add_card("Алла", item_type="book")
+    movie_id = add_card("Берег", item_type="movie")
+    series_id = add_card("Ветер", item_type="series")
+
+    client.put(f"{API}/me/library/{book_id}", json={"status": "watching"}, headers=headers)
+    client.put(
+        f"{API}/me/library/{movie_id}",
+        json={"status": "finished", "finished_at": "2026-10-01"},
+        headers=headers,
+    )
+    client.put(f"{API}/me/library/{series_id}", json={"status": "planned"}, headers=headers)
+
+    watching = client.get(f"{API}/me/library?status=watching", headers=headers)
+    assert watching.status_code == 200
+    assert [entry["item"]["title"] for entry in watching.json()] == ["Алла"]
+
+    movies = client.get(f"{API}/me/library?type=movie", headers=headers)
+    assert [entry["item"]["title"] for entry in movies.json()] == ["Берег"]
+
+    by_title = client.get(f"{API}/me/library?sort=title_asc", headers=headers)
+    assert [entry["item"]["title"] for entry in by_title.json()] == [
+        "Алла",
+        "Берег",
+        "Ветер",
+    ]
+
+    by_rating = client.get(f"{API}/me/library?sort=rating_desc", headers=headers)
+    assert by_rating.status_code == 200
+    assert len(by_rating.json()) == 3
+
+
+def test_finished_at_can_be_edited(client):
+    user = register(client, "editor")
+    headers = auth(user["access_token"])
+    item_id = add_card("Редактируемая дата", item_type="book")
+
+    first = client.put(
+        f"{API}/me/library/{item_id}",
+        json={"status": "finished", "finished_at": "2026-10-01"},
+        headers=headers,
+    )
+    assert first.status_code == 200
+
+    edited = client.put(
+        f"{API}/me/library/{item_id}",
+        json={"status": "finished", "finished_at": "2026-10-05"},
+        headers=headers,
+    )
+    assert edited.status_code == 200
+    assert edited.json()["finished_at"] == "2026-10-05"
+
+    # PUT идемпотентен: запись на полке одна.
+    entries = client.get(f"{API}/me/library", headers=headers).json()
+    assert len(entries) == 1
+
+
+def test_remove_absent_shelf_entry_returns_404(client):
+    user = register(client, "remover")
+    headers = auth(user["access_token"])
+    item_id = add_card("Не на полке", item_type="book")
+
+    missing = client.delete(f"{API}/me/library/{item_id}", headers=headers)
+    assert missing.status_code == 404
