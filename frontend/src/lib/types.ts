@@ -4,6 +4,7 @@ export type Role = "user" | "moderator" | "admin";
 export type ItemType = "book" | "movie" | "series";
 export type ShelfStatus = "watching" | "finished" | "planned" | "dropped";
 export type ItemSource = "local" | "tmdb" | "openlibrary" | "google_books";
+export type ModerationStatus = "pending" | "approved" | "hidden";
 export type ListTheme = "classic" | "noir" | "pastel";
 
 export interface Page<T> {
@@ -55,6 +56,11 @@ export interface CatalogItem {
   is_local: boolean;
   source: ItemSource;
   created_at?: string;
+}
+
+export interface LocalCard extends CatalogItem {
+  moderation_status: ModerationStatus;
+  created_by: number | null;
 }
 
 export type CatalogSort = "relevance" | "year_desc" | "rating_desc" | "title_asc";

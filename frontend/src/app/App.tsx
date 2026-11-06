@@ -9,9 +9,11 @@ import FeedPage from "@/pages/FeedPage";
 import HomePage from "@/pages/HomePage";
 import ItemPage from "@/pages/ItemPage";
 import LibraryPage from "@/pages/LibraryPage";
+import LocalCardFormPage from "@/pages/LocalCardFormPage";
 import ListPage from "@/pages/ListPage";
 import LoginPage from "@/pages/LoginPage";
 import ModerationPage from "@/pages/ModerationPage";
+import MyCardsPage from "@/pages/MyCardsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import ProfilePage from "@/pages/ProfilePage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -46,6 +48,30 @@ export default function App() {
             element={
               <RequireAuth>
                 <LibraryPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="my/cards"
+            element={
+              <RequireAuth>
+                <MyCardsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="cards/new"
+            element={
+              <RequireAuth>
+                <LocalCardFormPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="cards/:itemId/edit"
+            element={
+              <RequireAuth>
+                <LocalCardFormPage />
               </RequireAuth>
             }
           />

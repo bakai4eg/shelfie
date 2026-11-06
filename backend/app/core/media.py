@@ -1,4 +1,4 @@
-"""Файлы профиля: аватары (T1.4).
+"""Изображения: аватары (T1.4) и обложки локальных карточек (T2.3).
 
 В БД храним относительный путь, наружу отдаём `/media/<path>`. Имя файла
 генерируем сами (uuid), оригинальное не используем — так не бывает коллизий
@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.constants import ALLOWED_IMAGE_TYPES
 
 AVATAR_SUBDIR = "avatars"
+POSTER_SUBDIR = "posters"
 EXTENSIONS = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -47,8 +48,7 @@ def _matches(content_type: str, head: bytes) -> bool:
     return False
 
 
-def save_avatar(data: bytes, content_type: str) -> str:
-    """Проверяет файл и кладёт его в MEDIA_ROOT/avatars. Возвращает путь для БД."""
+def _save_image(subdir: str, data: bytes, content_type: str) -> str:
     if not data:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, EMPTY_FILE)
     if content_type not in ALLOWED_IMAGE_TYPES:
@@ -56,14 +56,14 @@ def save_avatar(data: bytes, content_type: str) -> str:
     if not _matches(content_type, data[:16]):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, INVALID_CONTENT)
 
-    relative = f"{AVATAR_SUBDIR}/{uuid4().hex}{EXTENSIONS[content_type]}"
+    relative = f"{subdir}/{uuid4().hex}{EXTENSIONS[content_type]}"
     target = _root() / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(data)
     return relative
 
 
-def delete_avatar(path: str | None) -> None:
+def delete_image(path: str | None) -> None:
     """Удаляет старый файл. За пределы MEDIA_ROOT не выходим и не падаем."""
     if not path or path.startswith(("http://", "https://", "/")):
         return
@@ -72,3 +72,21 @@ def delete_avatar(path: str | None) -> None:
     if target != root and root not in target.parents:
         return
     target.unlink(missing_ok=True)
+
+
+def save_avatar(data: bytes, content_type: str) -> str:
+    """Проверяет файл и кладёт его в MEDIA_ROOT/avatars. Возвращает путь для БД."""
+    return _save_image(AVATAR_SUBDIR, data, content_type)
+
+
+def delete_avatar(path: str | None) -> None:
+    delete_image(path)
+
+
+def save_poster(data: bytes, content_type: str) -> str:
+    """Обложка локальной карточки: MEDIA_ROOT/posters (T2.3)."""
+    return _save_image(POSTER_SUBDIR, data, content_type)
+
+
+def delete_poster(path: str | None) -> None:
+    delete_image(path)

@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     admin,
     auth,
+    cards,
     catalog,
     health,
     library,
@@ -24,6 +25,7 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(catalog.router)
+api_router.include_router(cards.router)
 api_router.include_router(library.router)
 api_router.include_router(lists.router)
 api_router.include_router(social.router)

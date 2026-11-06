@@ -6,6 +6,7 @@
 панели появлялись бы жанры скрытых карточек.
 """
 
+from fastapi import HTTPException, status
 from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +19,7 @@ from app.core.constants import (
     ROLE_MODERATOR,
     SOURCE_LOCAL,
 )
+from app.core.media import delete_poster, save_poster
 from app.models.catalog import CatalogItem
 from app.models.user import User
 
@@ -182,3 +184,147 @@ async def catalog_filters(db: AsyncSession, *, user: User | None) -> dict:
         "year_min": year_min,
         "year_max": year_max,
     }
+
+
+async def create_local_card(
+    db: AsyncSession,
+    user: User,
+    *,
+    item_type: str,
+    title: str,
+    original_title: str | None = None,
+    year: int | None = None,
+    country: str | None = None,
+    genres: list[str] | None = None,
+    description: str | None = None,
+    is_local: bool = True,
+    poster: tuple[bytes, str] | None = None,
+) -> CatalogItem:
+    """Создаёт карточку сообщества (ТЗ 4.3.3).
+
+    Всегда `source = local`, `moderation_status = pending`: карточка видна
+    автору и модераторам, а в публичный каталог попадёт после проверки (T4.2).
+    """
+    poster_path = save_poster(*poster) if poster else None
+    item = CatalogItem(
+        type=item_type,
+        source=SOURCE_LOCAL,
+        title=title,
+        original_title=original_title,
+        year=year,
+        country=country,
+        genres=list(genres or []),
+        description=description,
+        poster_path=poster_path,
+        is_local=is_local,
+        moderation_status=MODERATION_PENDING,
+        created_by=user.id,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def update_local_card(
+    db: AsyncSession,
+    user: User,
+    item_id: int,
+    *,
+    payload: dict[str, object],
+    poster: tuple[bytes, str] | None = None,
+    remove_poster: bool = False,
+) -> CatalogItem:
+    """Правка своей карточки, пока она на проверке (T2.3)."""
+    item = await db.scalar(
+        select(CatalogItem).where(
+            CatalogItem.id == item_id,
+            CatalogItem.source == SOURCE_LOCAL,
+            CatalogItem.created_by == user.id,
+        )
+    )
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Карточка не найдена")
+    if item.moderation_status != MODERATION_PENDING:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Карточка уже проверена — изменения недоступны",
+        )
+
+    for field in (
+        "type",
+        "title",
+        "original_title",
+        "year",
+        "country",
+        "genres",
+        "description",
+        "is_local",
+    ):
+        if field in payload:
+            setattr(item, field, payload[field])
+
+    old_poster = item.poster_path
+    if poster:
+        item.poster_path = save_poster(*poster)
+    elif remove_poster:
+        item.poster_path = None
+
+    await db.commit()
+    await db.refresh(item)
+
+    # Старый файл удаляем только после успешного коммита, чтобы не потерять
+    # обложку при ошибке записи в БД.
+    if old_poster and old_poster != item.poster_path:
+        delete_poster(old_poster)
+    return item
+
+
+async def list_my_local_cards(
+    db: AsyncSession,
+    user: User,
+    *,
+    page: int = 1,
+    size: int = 20,
+) -> tuple[list[CatalogItem], int]:
+    """Все локальные карточки автора, включая ожидающие проверки."""
+    conditions = (
+        CatalogItem.created_by == user.id,
+        CatalogItem.source == SOURCE_LOCAL,
+    )
+    total = (
+        await db.scalar(select(func.count()).select_from(CatalogItem).where(*conditions))
+    ) or 0
+    stmt = (
+        select(CatalogItem)
+        .where(*conditions)
+        .order_by(CatalogItem.created_at.desc(), CatalogItem.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    return list((await db.scalars(stmt)).all()), total
+
+
+async def find_local_duplicates(
+    db: AsyncSession,
+    user: User,
+    *,
+    title: str,
+    year: int | None = None,
+    limit: int = 10,
+) -> list[CatalogItem]:
+    """Похожие карточки до сохранения: совпадение по названию, год — приоритет."""
+    needle = title.strip()
+    pattern = _search_pattern(needle)
+    conditions = [
+        visibility_clause(user),
+        CatalogItem.title_normalized.like(pattern, escape="\\"),
+    ]
+
+    order = [case((CatalogItem.title_normalized == needle.lower(), 0), else_=1)]
+    if year is not None:
+        order.append(case((CatalogItem.year == year, 0), else_=1))
+    order.extend([CatalogItem.year.desc().nullslast(), CatalogItem.id.desc()])
+
+    stmt = select(CatalogItem).where(*conditions).order_by(*order).limit(limit)
+    return list((await db.scalars(stmt)).all())

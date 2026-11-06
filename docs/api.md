@@ -119,6 +119,8 @@
 
 Созданная карточка всегда получает `source = local`, `moderation_status = pending` и видна только автору и модераторам.
 
+`POST` и `PATCH` принимают `multipart/form-data`: текстовые поля формы (`type`, `title`, `original_title`, `year`, `country`, `genres`, `description`, `is_local`) и необязательный файл `poster` (JPEG, PNG или WebP). `genres` — строка через запятую или JSON-массив. `GET /cards/local/duplicates` возвращает список карточек (совпадения по названию, год — приоритет), `GET /cards/local/mine` — `Page` со статусом проверки.
+
 ## 5. Полки и оценки (T2.4, T3.3)
 
 | Метод | Путь | Доступ | Описание |

@@ -5,6 +5,11 @@ import { cn } from "@/lib/utils";
 
 const NAV = [{ to: "/catalog", label: "Каталог" }];
 
+const AUTH_NAV = [
+  { to: "/my/library", label: "Мои полки" },
+  { to: "/my/cards", label: "Мои карточки" },
+];
+
 function Logo() {
   return (
     <Link to="/" className="flex items-center gap-2.5" aria-label="Shelfie — на главную">
@@ -25,11 +30,11 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-shelf-200 bg-shelf-50/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <Logo />
 
-        <nav className="hidden items-center gap-1 sm:flex">
-          {NAV.map((item) => (
+        <nav className="order-3 flex w-full flex-wrap items-center gap-1 sm:order-none sm:w-auto">
+          {[...NAV, ...(user ? AUTH_NAV : [])].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

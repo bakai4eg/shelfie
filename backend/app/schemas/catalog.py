@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 CatalogType = Literal["book", "movie", "series"]
 CatalogSource = Literal["local", "tmdb", "openlibrary", "google_books"]
 CatalogSort = Literal["relevance", "year_desc", "rating_desc", "title_asc"]
+ModerationStatus = Literal["pending", "approved", "hidden"]
 
 
 class CatalogItemRead(BaseModel):
@@ -39,6 +40,13 @@ class CatalogItemRead(BaseModel):
         if value.startswith(("http://", "https://", "/")):
             return value
         return f"/media/{value}"
+
+
+class LocalCardRead(CatalogItemRead):
+    """Локальная карточка для автора: виден статус проверки (T2.3)."""
+
+    moderation_status: ModerationStatus
+    created_by: int | None = None
 
 
 class CatalogFilters(BaseModel):
