@@ -1,6 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/context";
+import { ROLE_LEVEL } from "@/lib/constants";
+import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const NAV = [{ to: "/catalog", label: "Каталог" }];
@@ -8,6 +10,13 @@ const NAV = [{ to: "/catalog", label: "Каталог" }];
 const AUTH_NAV = [
   { to: "/my/library", label: "Мои полки" },
   { to: "/my/cards", label: "Мои карточки" },
+  { to: "/my/lists", label: "Мои списки" },
+];
+
+/** Разделы по роли: обычный пользователь их в навигации не видит (ТЗ 4.6.1). */
+const ROLE_NAV: { to: string; label: string; role: Role }[] = [
+  { to: "/moderation", label: "Модерация", role: "moderator" },
+  { to: "/admin", label: "Администрирование", role: "admin" },
 ];
 
 function Logo() {
@@ -34,7 +43,11 @@ export default function Header() {
         <Logo />
 
         <nav className="order-3 flex w-full flex-wrap items-center gap-1 sm:order-none sm:w-auto">
-          {[...NAV, ...(user ? AUTH_NAV : [])].map((item) => (
+          {[
+            ...NAV,
+            ...(user ? AUTH_NAV : []),
+            ...(user ? ROLE_NAV.filter((item) => ROLE_LEVEL[user.role] >= ROLE_LEVEL[item.role]) : []),
+          ].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
