@@ -10,10 +10,12 @@ import HomePage from "@/pages/HomePage";
 import ItemPage from "@/pages/ItemPage";
 import LibraryPage from "@/pages/LibraryPage";
 import LocalCardFormPage from "@/pages/LocalCardFormPage";
+import ListEditorPage from "@/pages/ListEditorPage";
 import ListPage from "@/pages/ListPage";
 import LoginPage from "@/pages/LoginPage";
 import ModerationPage from "@/pages/ModerationPage";
 import MyCardsPage from "@/pages/MyCardsPage";
+import MyListsPage from "@/pages/MyListsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import ProfilePage from "@/pages/ProfilePage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -72,6 +74,22 @@ export default function App() {
             element={
               <RequireAuth>
                 <LocalCardFormPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="my/lists"
+            element={
+              <RequireAuth>
+                <MyListsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="me/lists/:listId"
+            element={
+              <RequireAuth>
+                <ListEditorPage />
               </RequireAuth>
             }
           />

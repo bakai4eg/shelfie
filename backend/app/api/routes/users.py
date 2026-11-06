@@ -15,6 +15,7 @@ from app.schemas.profile import (
     PublicProfile,
     ReviewPreview,
 )
+from app.services.lists import public_lists_of
 from app.services.profile import (
     change_password,
     get_user_by_login,
@@ -74,9 +75,14 @@ async def get_user_lists(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> Page[ListPreview]:
-    await get_user_by_login(db, login)
-    # TODO(T3.2): выборка публичных списков; до появления модели — пусто.
-    return Page[ListPreview](items=[], total=0, page=page, size=size)
+    owner = await get_user_by_login(db, login)
+    summaries, total = await public_lists_of(db, owner, page, size)
+    return Page[ListPreview](
+        items=[ListPreview.model_validate(s, from_attributes=True) for s in summaries],
+        total=total,
+        page=page,
+        size=size,
+    )
 
 
 @router.patch("/me/profile", response_model=PublicProfile, summary="Описание профиля")

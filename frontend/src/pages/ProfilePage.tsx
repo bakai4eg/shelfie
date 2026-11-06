@@ -278,7 +278,9 @@ export default function ProfilePage() {
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
             {lists.map((list) => (
               <li key={list.id} className="rounded-2xl bg-white p-4 ring-1 ring-shelf-200">
-                <p className="font-medium text-shelf-900">{list.title}</p>
+                <Link to={`/lists/${list.id}`} className="font-medium text-shelf-900 hover:text-accent-700">
+                  {list.title}
+                </Link>
                 <p className="mt-1 text-sm text-shelf-500">Карточек: {list.items_count}</p>
               </li>
             ))}

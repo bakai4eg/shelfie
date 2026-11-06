@@ -162,3 +162,25 @@ export interface RatingResult {
   rating_avg: number | null;
   ratings_count: number;
 }
+
+export interface ListSummary {
+  id: number;
+  title: string;
+  description: string | null;
+  is_public: boolean;
+  theme: ListTheme;
+  items_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListItemEntry {
+  position: number;
+  note: string | null;
+  item: CatalogItem;
+}
+
+export interface ListDetail extends ListSummary {
+  owner: { login: string; avatar_url: string | null };
+  items: ListItemEntry[];
+}

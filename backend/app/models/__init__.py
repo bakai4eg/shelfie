@@ -6,6 +6,7 @@
 
 from app.models.catalog import CatalogItem
 from app.models.library import Rating, ShelfEntry
+from app.models.lists import ListItem, UserList
 from app.models.moderation import Report
 from app.models.social import Follow, Review
 from app.models.user import Session, User
@@ -13,10 +14,12 @@ from app.models.user import Session, User
 __all__ = [
     "CatalogItem",
     "Follow",
+    "ListItem",
     "Rating",
     "Report",
     "Review",
     "Session",
     "ShelfEntry",
     "User",
+    "UserList",
 ]
