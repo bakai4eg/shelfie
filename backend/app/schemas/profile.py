@@ -30,6 +30,7 @@ class UserStats(BaseModel):
 class PublicProfile(BaseModel):
     """Публичная страница: без e-mail, роли и служебных полей."""
 
+    id: int
     login: str
     avatar_url: str | None = None
     bio: str | None = None

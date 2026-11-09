@@ -4,6 +4,7 @@
 здесь, чтобы Alembic видел полную метадату (`Base.metadata`).
 """
 
+from app.models.audit import AuditLog
 from app.models.catalog import CatalogItem
 from app.models.library import Rating, ShelfEntry
 from app.models.lists import ListItem, UserList
@@ -12,6 +13,7 @@ from app.models.social import Follow, Review
 from app.models.user import Session, User
 
 __all__ = [
+    "AuditLog",
     "CatalogItem",
     "Follow",
     "ListItem",

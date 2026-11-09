@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Button from "@/components/ui/Button";
@@ -6,12 +6,11 @@ import GuestNotice from "@/components/ui/GuestNotice";
 import { useAuth } from "@/features/auth/context";
 import { fetchItem } from "@/features/catalog/api";
 import { libraryApi } from "@/features/library/api";
-import { moderationApi, type ReportCreatePayload } from "@/features/moderation/api";
+import ReportDialog, { type ReportTarget } from "@/components/ReportDialog";
 import { reviewsApi } from "@/features/reviews/api";
 import {
   ITEM_SOURCE_LABELS,
   ITEM_TYPE_LABELS,
-  REPORT_REASON_LABELS,
   SHELF_STATUS_LABELS,
 } from "@/lib/constants";
 import type { CatalogItem, Review, ShelfEntry, ShelfStatus } from "@/lib/types";
@@ -47,18 +46,7 @@ export default function ItemPage() {
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   // Жалоба (модалка)
-  const [reportTarget, setReportTarget] = useState<{
-    type: "item" | "review";
-    id: number;
-    title?: string;
-  } | null>(null);
-  const [reportReason, setReportReason] = useState<ReportCreatePayload["reason"]>("spam");
-  const [reportComment, setReportComment] = useState("");
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportMessage, setReportMessage] = useState<string | null>(null);
-  const [reportError, setReportError] = useState<string | null>(null);
-
-  const reportCommentId = useId();
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Загрузка карточки
   useEffect(() => {
@@ -279,36 +267,8 @@ export default function ItemPage() {
     }
   };
 
-  const handleOpenReport = (type: "item" | "review", targetId: number, title?: string) => {
+  const handleOpenReport = (type: "card" | "review", targetId: number, title?: string) => {
     setReportTarget({ type, id: targetId, title });
-    setReportReason("spam");
-    setReportComment("");
-    setReportMessage(null);
-    setReportError(null);
-  };
-
-  const handleSubmitReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportTarget) return;
-    setReportSubmitting(true);
-    setReportError(null);
-    try {
-      await moderationApi.createReport({
-        target_type: reportTarget.type,
-        target_id: reportTarget.id,
-        reason: reportReason,
-        comment: reportComment.trim() || null,
-      });
-      setReportMessage("Жалоба отправлена модераторам");
-      setTimeout(() => {
-        setReportTarget(null);
-        setReportMessage(null);
-      }, 1500);
-    } catch (err) {
-      setReportError(err instanceof Error ? err.message : "Не удалось отправить жалобу");
-    } finally {
-      setReportSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -396,7 +356,7 @@ export default function ItemPage() {
             {user && (
               <button
                 type="button"
-                onClick={() => handleOpenReport("item", item.id, item.title)}
+                onClick={() => handleOpenReport("card", item.id, item.title)}
                 className="text-xs text-shelf-500 hover:text-red-600"
               >
                 Пожаловаться
@@ -765,82 +725,7 @@ export default function ItemPage() {
         )}
       </section>
 
-      {/* Модальное окно жалобы */}
-      {reportTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-shelf-900">
-              Пожаловаться на {reportTarget.type === "item" ? "карточку" : "рецензию"}
-            </h3>
-            {reportTarget.title && (
-              <p className="mt-1 line-clamp-1 text-xs text-shelf-500">«{reportTarget.title}»</p>
-            )}
-
-            {reportMessage ? (
-              <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-800">
-                {reportMessage}
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitReport} className="mt-4 space-y-4">
-                {reportError && (
-                  <div className="rounded-xl bg-red-50 p-3 text-xs text-red-700">
-                    {reportError}
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="report-reason-select" className="mb-1 block text-sm font-medium text-shelf-800">
-                    Причина жалобы
-                  </label>
-                  <select
-                    id="report-reason-select"
-                    value={reportReason}
-                    onChange={(e) =>
-                      setReportReason(e.target.value as ReportCreatePayload["reason"])
-                    }
-                    className="w-full rounded-xl border border-shelf-300 bg-white px-3 py-2 text-sm text-shelf-900 focus:border-accent-600 focus:outline-2 focus:outline-accent-600"
-                  >
-                    {Object.entries(REPORT_REASON_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor={reportCommentId} className="mb-1 block text-sm font-medium text-shelf-800">
-                    Комментарий (необязательно)
-                  </label>
-                  <textarea
-                    id={reportCommentId}
-                    rows={3}
-                    maxLength={1000}
-                    value={reportComment}
-                    onChange={(e) => setReportComment(e.target.value)}
-                    placeholder="Опишите подробности нарушения..."
-                    className="w-full rounded-xl border border-shelf-300 bg-white px-3 py-2 text-sm text-shelf-900 focus:border-accent-600 focus:outline-2 focus:outline-accent-600"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="ghost"
-                    type="button"
-                    disabled={reportSubmitting}
-                    onClick={() => setReportTarget(null)}
-                  >
-                    Отмена
-                  </Button>
-                  <Button type="submit" disabled={reportSubmitting}>
-                    {reportSubmitting ? "Отправка..." : "Отправить"}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      {reportTarget && <ReportDialog target={reportTarget} onClose={() => setReportTarget(null)} />}
     </div>
   );
 }

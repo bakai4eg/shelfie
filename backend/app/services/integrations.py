@@ -139,9 +139,7 @@ async def sync_external_catalog(
             if ext.poster_path:
                 existing.poster_path = ext.poster_path
             existing.fetched_at = now
-            existing.title_normalized = (
-                f"{ext.title} {ext.original_title or ''}".strip().lower()
-            )
+            existing.title_normalized = f"{ext.title} {ext.original_title or ''}".strip().lower()
             saved_count += 1
         else:
             # Создаём новую карточку с флагом approved
@@ -196,4 +194,3 @@ async def refresh_item_if_stale(db: AsyncSession, item: CatalogItem) -> CatalogI
         pass  # если источник недоступен, отдаем существующие данные из БД
 
     return item
-

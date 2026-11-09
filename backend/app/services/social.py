@@ -58,9 +58,7 @@ async def create_review(
         select(Review.id).where(Review.user_id == user.id, Review.item_id == item_id)
     )
     if existing:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Вы уже написали рецензию на эту карточку"
-        )
+        raise HTTPException(status.HTTP_409_CONFLICT, "Вы уже написали рецензию на эту карточку")
 
     review = Review(
         user_id=user.id,
@@ -118,10 +116,7 @@ async def list_user_reviews(
     if not author:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Пользователь не найден")
 
-    base = (
-        select(Review)
-        .where(Review.user_id == author.id, Review.is_hidden.is_(False))
-    )
+    base = select(Review).where(Review.user_id == author.id, Review.is_hidden.is_(False))
     total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
     stmt = (
         base.order_by(Review.created_at.desc(), Review.id.desc())
@@ -181,15 +176,11 @@ async def is_following(db: AsyncSession, viewer: User | None, target_id: int) ->
 
 
 async def followers_count(db: AsyncSession, user_id: int) -> int:
-    return await db.scalar(
-        select(func.count(Follow.id)).where(Follow.following_id == user_id)
-    ) or 0
+    return await db.scalar(select(func.count(Follow.id)).where(Follow.following_id == user_id)) or 0
 
 
 async def following_count(db: AsyncSession, user_id: int) -> int:
-    return await db.scalar(
-        select(func.count(Follow.id)).where(Follow.follower_id == user_id)
-    ) or 0
+    return await db.scalar(select(func.count(Follow.id)).where(Follow.follower_id == user_id)) or 0
 
 
 async def list_followers(db: AsyncSession, login: str) -> list[UserShort]:
@@ -204,8 +195,7 @@ async def list_followers(db: AsyncSession, login: str) -> list[UserShort]:
     )
     followers = (await db.scalars(stmt)).all()
     return [
-        UserShort(login=u.login, avatar_url=media_url(u.avatar_path), bio=u.bio)
-        for u in followers
+        UserShort(login=u.login, avatar_url=media_url(u.avatar_path), bio=u.bio) for u in followers
     ]
 
 
@@ -221,6 +211,5 @@ async def list_following(db: AsyncSession, login: str) -> list[UserShort]:
     )
     following = (await db.scalars(stmt)).all()
     return [
-        UserShort(login=u.login, avatar_url=media_url(u.avatar_path), bio=u.bio)
-        for u in following
+        UserShort(login=u.login, avatar_url=media_url(u.avatar_path), bio=u.bio) for u in following
     ]

@@ -14,15 +14,10 @@ from app.schemas.library import RatingResult, ShelfEntryRead, ShelfUpsert
 from app.services.catalog import visibility_clause
 
 
-async def get_visible_item(
-    db: AsyncSession, item_id: int, user: User | None
-) -> CatalogItem | None:
-    stmt = (
-        select(CatalogItem)
-        .where(
-            CatalogItem.id == item_id,
-            visibility_clause(user),
-        )
+async def get_visible_item(db: AsyncSession, item_id: int, user: User | None) -> CatalogItem | None:
+    stmt = select(CatalogItem).where(
+        CatalogItem.id == item_id,
+        visibility_clause(user),
     )
     return await db.scalar(stmt)
 
@@ -138,9 +133,7 @@ async def delete_shelf(db: AsyncSession, user: User, item_id: int) -> None:
     await db.commit()
 
 
-async def set_rating(
-    db: AsyncSession, user: User, item_id: int, value: int
-) -> RatingResult:
+async def set_rating(db: AsyncSession, user: User, item_id: int, value: int) -> RatingResult:
     item = await get_visible_item(db, item_id, user)
     if not item:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Карточка не найдена")

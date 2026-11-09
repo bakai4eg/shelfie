@@ -51,9 +51,7 @@ class OpenLibraryProvider:
             country = language[0].upper() if language and isinstance(language, list) else None
 
             author_names = doc.get("author_name", [])
-            description = (
-                f"Автор: {', '.join(author_names[:3])}" if author_names else None
-            )
+            description = f"Автор: {', '.join(author_names[:3])}" if author_names else None
 
             items.append(
                 ExternalItem(

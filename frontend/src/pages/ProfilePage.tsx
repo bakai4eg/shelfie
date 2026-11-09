@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import ReportDialog from "@/components/ReportDialog";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/context";
 import { profileApi } from "@/features/profile/api";
@@ -68,6 +69,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -199,6 +201,10 @@ export default function ProfilePage() {
                 Редактировать профиль
               </Link>
             ) : user ? (
+              <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={() => setReporting(true)}>
+                Пожаловаться
+              </Button>
               <Button
                 variant={profile.is_following ? "secondary" : "primary"}
                 disabled={followLoading}
@@ -210,6 +216,7 @@ export default function ProfilePage() {
                   ? "Отписаться"
                   : "Подписаться"}
               </Button>
+              </div>
             ) : (
               <Link
                 to={`/login?next=${encodeURIComponent(`/u/${profile.login}`)}`}
@@ -287,6 +294,12 @@ export default function ProfilePage() {
           </ul>
         )}
       </section>
+      {reporting ? (
+        <ReportDialog
+          target={{ type: "profile", id: profile.id, title: `@${profile.login}` }}
+          onClose={() => setReporting(false)}
+        />
+      ) : null}
     </section>
   );
 }

@@ -137,11 +137,7 @@ async def search_catalog(
             CatalogItem.id.desc(),
         )
 
-    stmt = (
-        base.order_by(*order_by)
-        .offset((page - 1) * size)
-        .limit(size)
-    )
+    stmt = base.order_by(*order_by).offset((page - 1) * size).limit(size)
     items = list((await db.scalars(stmt)).all())
     return items, total
 
@@ -150,12 +146,8 @@ async def catalog_filters(db: AsyncSession, *, user: User | None) -> dict:
     """Значения панели фильтров по видимым карточкам."""
     visible = visibility_clause(user)
 
-    types = list(
-        (await db.scalars(select(CatalogItem.type).where(visible).distinct())).all()
-    )
-    sources = list(
-        (await db.scalars(select(CatalogItem.source).where(visible).distinct())).all()
-    )
+    types = list((await db.scalars(select(CatalogItem.type).where(visible).distinct())).all())
+    sources = list((await db.scalars(select(CatalogItem.source).where(visible).distinct())).all())
     countries = list(
         (
             await db.scalars(
@@ -171,9 +163,7 @@ async def catalog_filters(db: AsyncSession, *, user: User | None) -> dict:
         )
     ).one()
 
-    genre_rows = (
-        await db.scalars(select(CatalogItem.genres).where(visible))
-    ).all()
+    genre_rows = (await db.scalars(select(CatalogItem.genres).where(visible))).all()
     genres = sorted({genre for row in genre_rows for genre in (row or [])}, key=str.casefold)
 
     return {
@@ -292,9 +282,7 @@ async def list_my_local_cards(
         CatalogItem.created_by == user.id,
         CatalogItem.source == SOURCE_LOCAL,
     )
-    total = (
-        await db.scalar(select(func.count()).select_from(CatalogItem).where(*conditions))
-    ) or 0
+    total = (await db.scalar(select(func.count()).select_from(CatalogItem).where(*conditions))) or 0
     stmt = (
         select(CatalogItem)
         .where(*conditions)

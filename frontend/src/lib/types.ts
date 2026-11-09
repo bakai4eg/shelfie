@@ -86,6 +86,7 @@ export interface UserStats {
 }
 
 export interface PublicProfile {
+  id: number;
   login: string;
   avatar_url: string | null;
   bio: string | null;
@@ -149,6 +150,8 @@ export interface Report {
   reporter_login: string;
   target_type: string;
   target_id: number;
+  target_title: string | null;
+  target_author: string | null;
   reason: string;
   comment: string | null;
   status: string;
@@ -183,4 +186,37 @@ export interface ListItemEntry {
 export interface ListDetail extends ListSummary {
   owner: { login: string; avatar_url: string | null };
   items: ListItemEntry[];
+}
+
+export interface ModerationCard extends CatalogItem {
+  moderation_status: ModerationStatus;
+  author_login: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  login: string;
+  email: string;
+  role: Role;
+  is_blocked: boolean;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export interface AdminSummary {
+  users: number;
+  cards: number;
+  reviews: number;
+  open_reports: number;
+}
+
+export interface AuditEntry {
+  id: number;
+  actor_id: number | null;
+  actor_login: string;
+  action: string;
+  target_type: string | null;
+  target_id: number | null;
+  details: Record<string, unknown>;
+  created_at: string;
 }

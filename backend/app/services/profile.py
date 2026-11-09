@@ -30,35 +30,44 @@ async def get_user_by_login(db: AsyncSession, login: str) -> User:
 async def user_stats(db: AsyncSession, user: User) -> UserStats:
     """Реальные данные статистики пользователя (ТЗ 4.2.3)."""
     # finished по типам
-    books_read = await db.scalar(
-        select(func.count(ShelfEntry.id))
-        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
-        .where(
-            ShelfEntry.user_id == user.id,
-            ShelfEntry.status == STATUS_FINISHED,
-            CatalogItem.type == ITEM_BOOK,
+    books_read = (
+        await db.scalar(
+            select(func.count(ShelfEntry.id))
+            .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+            .where(
+                ShelfEntry.user_id == user.id,
+                ShelfEntry.status == STATUS_FINISHED,
+                CatalogItem.type == ITEM_BOOK,
+            )
         )
-    ) or 0
+        or 0
+    )
 
-    movies_watched = await db.scalar(
-        select(func.count(ShelfEntry.id))
-        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
-        .where(
-            ShelfEntry.user_id == user.id,
-            ShelfEntry.status == STATUS_FINISHED,
-            CatalogItem.type == ITEM_MOVIE,
+    movies_watched = (
+        await db.scalar(
+            select(func.count(ShelfEntry.id))
+            .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+            .where(
+                ShelfEntry.user_id == user.id,
+                ShelfEntry.status == STATUS_FINISHED,
+                CatalogItem.type == ITEM_MOVIE,
+            )
         )
-    ) or 0
+        or 0
+    )
 
-    series_watched = await db.scalar(
-        select(func.count(ShelfEntry.id))
-        .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
-        .where(
-            ShelfEntry.user_id == user.id,
-            ShelfEntry.status == STATUS_FINISHED,
-            CatalogItem.type == ITEM_SERIES,
+    series_watched = (
+        await db.scalar(
+            select(func.count(ShelfEntry.id))
+            .join(CatalogItem, CatalogItem.id == ShelfEntry.item_id)
+            .where(
+                ShelfEntry.user_id == user.id,
+                ShelfEntry.status == STATUS_FINISHED,
+                CatalogItem.type == ITEM_SERIES,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # оценки
     avg_val, count_val = (
@@ -73,21 +82,24 @@ async def user_stats(db: AsyncSession, user: User) -> UserStats:
     ratings_count = int(count_val or 0)
 
     # рецензии
-    reviews_count = await db.scalar(
-        select(func.count(Review.id)).where(
-            Review.user_id == user.id,
-            Review.is_hidden.is_(False),
+    reviews_count = (
+        await db.scalar(
+            select(func.count(Review.id)).where(
+                Review.user_id == user.id,
+                Review.is_hidden.is_(False),
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # подписчики и подписки
-    followers = await db.scalar(
-        select(func.count(Follow.id)).where(Follow.following_id == user.id)
-    ) or 0
+    followers = (
+        await db.scalar(select(func.count(Follow.id)).where(Follow.following_id == user.id)) or 0
+    )
 
-    following = await db.scalar(
-        select(func.count(Follow.id)).where(Follow.follower_id == user.id)
-    ) or 0
+    following = (
+        await db.scalar(select(func.count(Follow.id)).where(Follow.follower_id == user.id)) or 0
+    )
 
     return UserStats(
         books_read=books_read,
@@ -117,6 +129,7 @@ async def public_profile(
         following_target = is_fol is not None
 
     return PublicProfile(
+        id=user.id,
         login=user.login,
         avatar_url=avatar_url(user.avatar_path),
         bio=user.bio,

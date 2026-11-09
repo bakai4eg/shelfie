@@ -16,6 +16,7 @@ import LoginPage from "@/pages/LoginPage";
 import ModerationPage from "@/pages/ModerationPage";
 import MyCardsPage from "@/pages/MyCardsPage";
 import MyListsPage from "@/pages/MyListsPage";
+import MyReportsPage from "@/pages/MyReportsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import ProfilePage from "@/pages/ProfilePage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -74,6 +75,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <LocalCardFormPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="my/reports"
+            element={
+              <RequireAuth>
+                <MyReportsPage />
               </RequireAuth>
             }
           />
