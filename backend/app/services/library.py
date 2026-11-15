@@ -7,10 +7,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.constants import STATUS_FINISHED
 from app.models.catalog import CatalogItem
 from app.models.library import Rating, ShelfEntry
 from app.models.user import User
 from app.schemas.library import RatingResult, ShelfEntryRead, ShelfUpsert
+from app.services import activity
 from app.services.catalog import visibility_clause
 
 
@@ -91,6 +93,7 @@ async def upsert_shelf(
         .options(selectinload(ShelfEntry.item))
     )
 
+    previous_status = entry.status if entry else None
     if entry:
         entry.status = payload.status
         entry.finished_at = payload.finished_at
@@ -102,6 +105,10 @@ async def upsert_shelf(
             finished_at=payload.finished_at,
         )
         db.add(entry)
+
+    # Событие ленты только при переходе в «просмотрено»: повторное сохранение не дублирует.
+    if payload.status == STATUS_FINISHED and previous_status != STATUS_FINISHED:
+        activity.record(db, user.id, activity.ITEM_FINISHED, item_id=item_id)
 
     await db.commit()
     await db.refresh(entry)
@@ -141,11 +148,14 @@ async def set_rating(db: AsyncSession, user: User, item_id: int, value: int) -> 
     rating = await db.scalar(
         select(Rating).where(Rating.user_id == user.id, Rating.item_id == item_id)
     )
+    changed = rating is None or rating.value != value
     if rating:
         rating.value = value
     else:
         rating = Rating(user_id=user.id, item_id=item_id, value=value)
         db.add(rating)
+    if changed:  # повторная оценка тем же значением не засоряет ленту
+        activity.record(db, user.id, activity.RATING_SET, item_id=item_id, value=value)
 
     await db.commit()
     await recompute_item_rating(db, item_id)

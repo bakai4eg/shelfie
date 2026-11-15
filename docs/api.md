@@ -158,7 +158,8 @@
 | POST | `/catalog/{item_id}/reviews` | 👤 | `title`, `body`, `rating` (опционально); одна рецензия на карточку |
 | PATCH | `/reviews/{review_id}` | 👤 автор | Правка своей рецензии |
 | DELETE | `/reviews/{review_id}` | 👤 автор · 🛡 | Удаление |
-| GET | `/reviews/{review_id}/comments` | 🌐 | Комментарии |
+| GET | `/reviews/{review_id}` | 🌐 | Рецензия: счётчики комментариев и лайков, `liked_by_me`; скрытую видят только автор и модератор |
+| GET | `/reviews/{review_id}/comments` | 🌐 | Комментарии (пагинация `page`, `size`), старые сверху |
 | POST | `/reviews/{review_id}/comments` | 👤 | `body` (≤ 1000) |
 | DELETE | `/comments/{comment_id}` | 👤 автор · 🛡 | Удаление |
 
@@ -168,7 +169,7 @@
 
 | Метод | Путь | Доступ | Описание |
 | --- | --- | --- | --- |
-| POST | `/likes` | 👤 | `{"target_type": "review"\|"comment", "target_id": 12}` |
+| POST | `/likes` | 👤 | `{"target_type": "review"\|"comment", "target_id": 12}`; повтор не меняет счётчик, на скрытое — 404 |
 | DELETE | `/likes` | 👤 | Снять лайк (тот же body) |
 | POST | `/users/{login}/follow` | 👤 | Подписаться |
 | DELETE | `/users/{login}/follow` | 👤 | Отписаться |

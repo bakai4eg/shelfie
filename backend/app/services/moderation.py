@@ -15,7 +15,7 @@ from app.core.constants import (
 from app.core.media import delete_image
 from app.models.catalog import CatalogItem
 from app.models.moderation import Report
-from app.models.social import Review
+from app.models.social import Comment, Review
 from app.models.user import User
 from app.schemas.catalog import CatalogItemRead
 from app.schemas.moderation import (
@@ -24,7 +24,7 @@ from app.schemas.moderation import (
     ReportRead,
 )
 from app.services import audit
-from app.services.cleanup import delete_card, delete_reviews
+from app.services.cleanup import delete_card, delete_comments, delete_reviews
 
 REPORT_OPEN = "open"
 REPORT_RESOLVED = "resolved"
@@ -47,6 +47,15 @@ async def _target_context(
             )
         ).first()
         return (row[0], row[1]) if row else (None, None)
+    if target_type == "comment":
+        row = (
+            await db.execute(
+                select(Comment.body, User.login)
+                .join(User, User.id == Comment.user_id)
+                .where(Comment.id == target_id)
+            )
+        ).first()
+        return (row[0][:80], row[1]) if row else (None, None)
     if target_type == "card":
         row = (
             await db.execute(
@@ -84,14 +93,14 @@ async def _to_read(db: AsyncSession, report: Report, reporter_login: str) -> Rep
 
 
 async def create_report(db: AsyncSession, user: User, payload: ReportCreate) -> ReportRead:
-    if payload.target_type == "comment":
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "Жалобы на комментарии пока не поддерживаются"
-        )
-
     title, author = await _target_context(db, payload.target_type, payload.target_id)
     if title is None:
-        names = {"review": "Рецензия", "card": "Карточка", "profile": "Профиль"}
+        names = {
+            "review": "Рецензия",
+            "comment": "Комментарий",
+            "card": "Карточка",
+            "profile": "Профиль",
+        }
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"{names[payload.target_type]} не найден(а)")
 
     own = (payload.target_type == "profile" and payload.target_id == user.id) or (
@@ -163,6 +172,11 @@ async def _hide(
         if review is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Рецензия не найдена")
         review.is_hidden = True
+    elif target_type == "comment":
+        comment = await db.get(Comment, target_id)
+        if comment is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Комментарий не найден")
+        comment.is_hidden = True
     elif target_type == "card":
         item = await db.get(CatalogItem, target_id)
         if item is None:
@@ -171,7 +185,8 @@ async def _hide(
     else:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "Скрыть можно только рецензию или карточку. Жалобу на профиль можно отклонить",
+            "Скрыть можно только рецензию, комментарий или карточку. "
+            "Жалобу на профиль можно отклонить",
         )
     audit.record(db, moderator, audit.CONTENT_HIDE, target_type, target_id, reason=reason)
 
@@ -185,6 +200,11 @@ async def _delete(
         if review is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Рецензия не найдена")
         await delete_reviews(db, [review.id])
+    elif target_type == "comment":
+        comment = await db.get(Comment, target_id)
+        if comment is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Комментарий не найден")
+        await delete_comments(db, [comment.id])
     elif target_type == "card":
         item = await db.get(CatalogItem, target_id)
         if item is None:
@@ -193,7 +213,8 @@ async def _delete(
     else:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "Удалить можно только рецензию или карточку. Жалобу на профиль можно отклонить",
+            "Удалить можно только рецензию, комментарий или карточку. "
+            "Жалобу на профиль можно отклонить",
         )
     audit.record(db, moderator, audit.CONTENT_DELETE, target_type, target_id, reason=reason)
     return files

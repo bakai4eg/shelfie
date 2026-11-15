@@ -18,7 +18,7 @@ from app.models.catalog import CatalogItem
 from app.models.library import Rating, ShelfEntry
 from app.models.lists import ListItem, UserList
 from app.models.moderation import Report
-from app.models.social import Follow, Review
+from app.models.social import ActivityEvent, Comment, Follow, Like, Review
 from app.models.user import Session as AuthSession
 from app.models.user import User
 
@@ -32,11 +32,33 @@ async def _drop_reports(db: AsyncSession, target_type: str, target_ids: list[int
         )
 
 
+async def _drop_likes(db: AsyncSession, target_type: str, target_ids: list[int]) -> None:
+    if target_ids:
+        await db.execute(
+            delete(Like).where(Like.target_type == target_type, Like.target_id.in_(target_ids))
+        )
+
+
+async def delete_comments(db: AsyncSession, comment_ids: list[int]) -> None:
+    """Комментарий уносит свои лайки и жалобы на себя."""
+    if not comment_ids:
+        return
+    await _drop_likes(db, "comment", comment_ids)
+    await _drop_reports(db, "comment", comment_ids)
+    await db.execute(delete(Comment).where(Comment.id.in_(comment_ids)))
+
+
 async def delete_reviews(db: AsyncSession, review_ids: list[int]) -> None:
-    """Рецензия уносит жалобы на себя. Комментарии и лайки подключатся к этой же точке."""
+    """Рецензия уносит комментарии, лайки, жалобы на себя и события ленты (ТЗ 4.6.3)."""
     if not review_ids:
         return
+    comment_ids = list(
+        await db.scalars(select(Comment.id).where(Comment.review_id.in_(review_ids)))
+    )
+    await delete_comments(db, comment_ids)
+    await _drop_likes(db, "review", review_ids)
     await _drop_reports(db, "review", review_ids)
+    await db.execute(delete(ActivityEvent).where(ActivityEvent.review_id.in_(review_ids)))
     await db.execute(delete(Review).where(Review.id.in_(review_ids)))
 
 
@@ -47,6 +69,7 @@ async def delete_card(db: AsyncSession, item: CatalogItem) -> list[str]:
     await db.execute(delete(Rating).where(Rating.item_id == item.id))
     await db.execute(delete(ShelfEntry).where(ShelfEntry.item_id == item.id))
     await db.execute(delete(ListItem).where(ListItem.item_id == item.id))
+    await db.execute(delete(ActivityEvent).where(ActivityEvent.item_id == item.id))
     await _drop_reports(db, "card", [item.id])
     files = [item.poster_path] if item.is_local and item.poster_path else []
     await db.delete(item)
@@ -87,8 +110,15 @@ async def delete_user(db: AsyncSession, user: User) -> list[str]:
     review_ids = list(await db.scalars(select(Review.id).where(Review.user_id == user.id)))
     await delete_reviews(db, review_ids)
 
+    # Свои комментарии и лайки, а также события пользователя.
+    own_comments = list(await db.scalars(select(Comment.id).where(Comment.user_id == user.id)))
+    await delete_comments(db, own_comments)
+    await db.execute(delete(Like).where(Like.user_id == user.id))
+    await db.execute(delete(ActivityEvent).where(ActivityEvent.user_id == user.id))
+
     list_ids = list(await db.scalars(select(UserList.id).where(UserList.user_id == user.id)))
     if list_ids:
+        await db.execute(delete(ActivityEvent).where(ActivityEvent.list_id.in_(list_ids)))
         await db.execute(delete(ListItem).where(ListItem.list_id.in_(list_ids)))
         await db.execute(delete(UserList).where(UserList.id.in_(list_ids)))
 

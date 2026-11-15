@@ -6,6 +6,7 @@ import GuestNotice from "@/components/ui/GuestNotice";
 import { useAuth } from "@/features/auth/context";
 import { fetchItem } from "@/features/catalog/api";
 import { libraryApi } from "@/features/library/api";
+import LikeButton from "@/components/LikeButton";
 import ReportDialog, { type ReportTarget } from "@/components/ReportDialog";
 import { reviewsApi } from "@/features/reviews/api";
 import {
@@ -718,6 +719,17 @@ export default function ItemPage() {
 
                   <h3 className="mt-4 font-semibold text-shelf-900">{r.title}</h3>
                   <p className="mt-2 whitespace-pre-line text-sm text-shelf-700">{r.body}</p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <LikeButton
+                      targetType="review"
+                      targetId={r.id}
+                      count={r.likes_count}
+                      liked={r.liked_by_me}
+                    />
+                    <Link to={`/reviews/${r.id}`} className="text-sm text-accent-600 hover:underline">
+                      Обсудить ({r.comments_count})
+                    </Link>
+                  </div>
                 </article>
               );
             })}

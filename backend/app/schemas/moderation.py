@@ -10,7 +10,7 @@ from app.schemas.catalog import CatalogItemRead
 TargetType = Literal["review", "comment", "card", "profile"]
 ReportReason = Literal["spam", "insult", "false_info", "copyright", "other"]
 ReportDecision = Literal["reject", "hide", "delete"]
-ContentType = Literal["review", "card"]
+ContentType = Literal["review", "comment", "card"]
 
 EXPLANATION_MAX_LENGTH = 1000
 
