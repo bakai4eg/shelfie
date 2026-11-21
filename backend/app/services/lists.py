@@ -1,12 +1,13 @@
 """Сервис списков-витрин (ТЗ 4.4.3)."""
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.media import avatar_url
 from app.models.catalog import CatalogItem
 from app.models.lists import ListItem, UserList
+from app.models.social import ActivityEvent
 from app.models.user import User
 from app.schemas.catalog import CatalogItemRead
 from app.schemas.lists import (
@@ -19,6 +20,7 @@ from app.schemas.lists import (
     ListSummary,
     ListUpdate,
 )
+from app.services import activity
 from app.services.catalog import visibility_clause
 
 
@@ -102,6 +104,9 @@ async def my_lists(db: AsyncSession, user: User) -> list[ListSummary]:
 async def create_list(db: AsyncSession, user: User, payload: ListCreate) -> ListDetail:
     lst = UserList(user_id=user.id, **payload.model_dump())
     db.add(lst)
+    await db.flush()
+    if lst.is_public:
+        activity.record(db, user.id, activity.LIST_PUBLISHED, list_id=lst.id)
     await db.commit()
     await db.refresh(lst)
     return await _detail(db, lst, user)
@@ -119,6 +124,8 @@ async def update_list(
         if key in ("title", "is_public", "theme") and value is None:
             continue
         setattr(lst, key, value)
+    if lst.is_public and not await activity.list_published_recorded(db, lst.id):
+        activity.record(db, user.id, activity.LIST_PUBLISHED, list_id=lst.id)
     await db.commit()
     await db.refresh(lst)
     return await _detail(db, lst, user)
@@ -126,6 +133,7 @@ async def update_list(
 
 async def delete_list(db: AsyncSession, user: User, list_id: int) -> None:
     lst = await _own_list(db, user, list_id)
+    await db.execute(delete(ActivityEvent).where(ActivityEvent.list_id == lst.id))
     await db.delete(lst)
     await db.commit()
 

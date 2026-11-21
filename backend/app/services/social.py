@@ -7,11 +7,15 @@ from sqlalchemy.orm import selectinload
 
 from app.core.constants import ROLE_ADMIN, ROLE_MODERATOR
 from app.core.media import avatar_url as media_url
-from app.models.social import Follow, Review
+from app.models.catalog import CatalogItem
+from app.models.social import Comment, Follow, Review
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.social import FollowState, ReviewCreate, ReviewRead, ReviewUpdate, UserShort
+from app.services import activity, audit
+from app.services.cleanup import delete_reviews
 from app.services.library import get_visible_item
+from app.services.likes import like_counts
 
 
 def _to_review_read(review: Review, user: User) -> ReviewRead:
@@ -19,6 +23,7 @@ def _to_review_read(review: Review, user: User) -> ReviewRead:
         id=review.id,
         item_id=review.item_id,
         user_login=user.login,
+        is_hidden=review.is_hidden,
         user_avatar_url=media_url(user.avatar_path),
         title=review.title,
         body=review.body,
@@ -28,8 +33,45 @@ def _to_review_read(review: Review, user: User) -> ReviewRead:
     )
 
 
+async def enrich_reviews(
+    db: AsyncSession, reads: list[ReviewRead], viewer: User | None
+) -> list[ReviewRead]:
+    """Названия карточек, счётчики комментариев и лайков для пачки рецензий одним заходом."""
+    if not reads:
+        return reads
+    ids = [r.id for r in reads]
+    titles = dict(
+        (
+            await db.execute(
+                select(CatalogItem.id, CatalogItem.title).where(
+                    CatalogItem.id.in_({r.item_id for r in reads})
+                )
+            )
+        ).all()
+    )
+    comments = dict(
+        (
+            await db.execute(
+                select(Comment.review_id, func.count(Comment.id))
+                .where(Comment.review_id.in_(ids), Comment.is_hidden.is_(False))
+                .group_by(Comment.review_id)
+            )
+        ).all()
+    )
+    likes = await like_counts(db, "review", ids, viewer)
+    for read in reads:
+        read.item_title = titles.get(read.item_id)
+        read.comments_count = comments.get(read.id, 0)
+        read.likes_count, read.liked_by_me = likes[read.id]
+    return reads
+
+
 async def list_reviews(
-    db: AsyncSession, item_id: int, page: int = 1, size: int = 20
+    db: AsyncSession,
+    item_id: int,
+    page: int = 1,
+    size: int = 20,
+    viewer: User | None = None,
 ) -> Page[ReviewRead]:
     base = (
         select(Review, User)
@@ -43,7 +85,7 @@ async def list_reviews(
         .limit(size)
     )
     rows = (await db.execute(stmt)).all()
-    items = [_to_review_read(rev, u) for rev, u in rows]
+    items = await enrich_reviews(db, [_to_review_read(rev, u) for rev, u in rows], viewer)
     return Page[ReviewRead](items=items, total=total, page=page, size=size)
 
 
@@ -68,9 +110,11 @@ async def create_review(
         rating=payload.rating,
     )
     db.add(review)
+    await db.flush()
+    activity.record(db, user.id, activity.REVIEW_CREATED, item_id=item_id, review_id=review.id)
     await db.commit()
     await db.refresh(review)
-    return _to_review_read(review, user)
+    return (await enrich_reviews(db, [_to_review_read(review, user)], user))[0]
 
 
 async def update_review(
@@ -93,7 +137,22 @@ async def update_review(
 
     await db.commit()
     await db.refresh(review)
-    return _to_review_read(review, user)
+    return (await enrich_reviews(db, [_to_review_read(review, user)], user))[0]
+
+
+async def get_review(db: AsyncSession, review_id: int, viewer: User | None) -> ReviewRead:
+    """Страница рецензии. Скрытую видят только автор и модератор."""
+    review = await db.get(Review, review_id)
+    if review is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Рецензия не найдена")
+    is_moderator = viewer is not None and viewer.role in (ROLE_MODERATOR, ROLE_ADMIN)
+    is_author = viewer is not None and viewer.id == review.user_id
+    if review.is_hidden and not (is_moderator or is_author):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Рецензия не найдена")
+    if await get_visible_item(db, review.item_id, viewer) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Рецензия не найдена")
+    author = await db.get(User, review.user_id)
+    return (await enrich_reviews(db, [_to_review_read(review, author)], viewer))[0]
 
 
 async def delete_review(db: AsyncSession, user: User, review_id: int) -> None:
@@ -105,12 +164,16 @@ async def delete_review(db: AsyncSession, user: User, review_id: int) -> None:
     if review.user_id != user.id and not is_moderator:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Удалять может только автор или модератор")
 
-    await db.delete(review)
+    if review.user_id != user.id:
+        audit.record(
+            db, user, audit.CONTENT_DELETE, "review", review.id, reason="удалено модератором"
+        )
+    await delete_reviews(db, [review.id])
     await db.commit()
 
 
 async def list_user_reviews(
-    db: AsyncSession, login: str, page: int = 1, size: int = 20
+    db: AsyncSession, login: str, page: int = 1, size: int = 20, viewer: User | None = None
 ) -> Page[ReviewRead]:
     author = await db.scalar(select(User).where(func.lower(User.login) == login.lower()))
     if not author:
@@ -124,7 +187,7 @@ async def list_user_reviews(
         .limit(size)
     )
     reviews = list((await db.scalars(stmt)).all())
-    items = [_to_review_read(r, author) for r in reviews]
+    items = await enrich_reviews(db, [_to_review_read(r, author) for r in reviews], viewer)
     return Page[ReviewRead](items=items, total=total, page=page, size=size)
 
 

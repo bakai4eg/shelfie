@@ -123,11 +123,16 @@ export interface ShelfEntry {
 export interface Review {
   id: number;
   item_id: number;
+  item_title: string | null;
   user_login: string;
   user_avatar_url: string | null;
   title: string;
   body: string;
   rating: number | null;
+  is_hidden: boolean;
+  comments_count: number;
+  likes_count: number;
+  liked_by_me: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -219,4 +224,40 @@ export interface AuditEntry {
   target_id: number | null;
   details: Record<string, unknown>;
   created_at: string;
+}
+
+export interface CommentItem {
+  id: number;
+  review_id: number;
+  user_login: string;
+  user_avatar_url: string | null;
+  body: string;
+  likes_count: number;
+  liked_by_me: boolean;
+  created_at: string;
+}
+
+export interface LikeState {
+  target_type: "review" | "comment";
+  target_id: number;
+  likes_count: number;
+  liked_by_me: boolean;
+}
+
+export interface FeedRef {
+  id: number;
+  title: string;
+  type?: ItemType | null;
+  poster_url?: string | null;
+}
+
+export interface FeedEvent {
+  id: number;
+  event_type: "review_created" | "item_finished" | "rating_set" | "list_published";
+  created_at: string;
+  user: { login: string; avatar_url: string | null };
+  item: FeedRef | null;
+  review: FeedRef | null;
+  list: FeedRef | null;
+  value: number | null;
 }

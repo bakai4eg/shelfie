@@ -4,13 +4,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.schemas.common import Page
 from app.schemas.social import FollowState, ReviewCreate, ReviewRead, ReviewUpdate, UserShort
 from app.services.social import (
     create_review,
     delete_review,
     follow_user,
+    get_review,
     list_followers,
     list_following,
     list_reviews,
@@ -29,10 +30,16 @@ router = APIRouter(tags=["social"])
 async def get_item_reviews(
     item_id: int,
     db: SessionDep,
+    viewer: OptionalUser,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> Page[ReviewRead]:
-    return await list_reviews(db, item_id, page=page, size=size)
+    return await list_reviews(db, item_id, page=page, size=size, viewer=viewer)
+
+
+@router.get("/reviews/{review_id}", response_model=ReviewRead, summary="Рецензия")
+async def get_one_review(review_id: int, db: SessionDep, viewer: OptionalUser) -> ReviewRead:
+    return await get_review(db, review_id, viewer)
 
 
 @router.post(
