@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const NAV = [{ to: "/catalog", label: "Каталог" }];
 
 const AUTH_NAV = [
+  { to: "/feed", label: "Лента" },
   { to: "/my/library", label: "Мои полки" },
   { to: "/my/cards", label: "Мои карточки" },
   { to: "/my/lists", label: "Мои списки" },

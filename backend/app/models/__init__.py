@@ -9,10 +9,13 @@ from app.models.catalog import CatalogItem
 from app.models.library import Rating, ShelfEntry
 from app.models.lists import ListItem, UserList
 from app.models.moderation import Report
-from app.models.social import Follow, Review
+from app.models.social import ActivityEvent, Comment, Follow, Like, Review
 from app.models.user import Session, User
 
 __all__ = [
+    "ActivityEvent",
+    "Comment",
+    "Like",
     "AuditLog",
     "CatalogItem",
     "Follow",
